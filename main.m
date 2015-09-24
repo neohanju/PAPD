@@ -71,38 +71,63 @@
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% PARAMETER AND PRESET
+%% PARAMETER AND PRESET
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% PART RESPONSE AND PRE-PROCESSING
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-load('res.mat');
-CFR = CFilterResponse(res);
-% frshow(CFR, 'head', 1, true);
+dbstop if error
+addpath library;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% GRAPH CONSTRUCT
+%% PART RESPONSE AND PRE-PROCESSING
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+load data/filter_responses.mat;
+CFR = CFilterResponse(filterResponses);
+
+% part name: root, head, arm1, arm2, shoulder1, shoulder2, groin, foot1, foot2
+targetPart = 'root';
+ResponseShow(CFR, targetPart, 1, true);
+rootRes = GetPartResponse(CFR, targetPart, 1, false);
+
+% local peak finding
+[peaks, peakMap] = FastPeakFind(rootRes);
+peakXs = peaks(1:2:end);
+peakYs = peaks(2:2:end);
+
+% draw peaks
+figure;
+colormap parula;
+imagesc(rootRes); hold on
+plot(peakXs, peakYs, 'r+');
+hold off;
+
+% peak map
+figure;
+colormap parula;
+imagesc(peakMap);
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% GRAPH CONSTRUCT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % generate vertices with part responses
 % define edge weights
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% OPTIMIZATION
+%% OPTIMIZATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % solve MWCP with the graph
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% REFINEMENT
+%% REFINEMENT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% VISUALIZATION
+%% VISUALIZATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
 %()()
 %('') HAANJU.YOO

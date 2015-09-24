@@ -1,10 +1,11 @@
-classdef CFilterResponse < handle       
+classdef CFilterResponse < handle
     
     % member variables
     properties (SetAccess = private)
         Responses_
+        ResponsesFlip_
         numScales_
-        numParts_ = 18;
+        numParts_ = 9;
     end        
     properties % Nonflip / Flip
         root, rootF
@@ -22,28 +23,47 @@ classdef CFilterResponse < handle
     methods
         % constructor
         function CFR = CFilterResponse(response)
-            CFR.Responses_ = response;
-            CFR.numScales_ = size(response, 2);
-            CellPartCollection = cell(1, CFR.numParts_);
+            CFR.Responses_ = response{1};
+            CFR.ResponsesFlip_ = response{2};
+            CFR.numScales_ = size(CFR.Responses_, 2);
+            CellPartCollection = cell(1, 2*CFR.numParts_);
             
-            % save responses among part and scale: CellPartCollection{partIdx}{scale}
-            for partIdx = 1:size(CellPartCollection, 2)
-                CellPartCollection{partIdx} = cell(1, CFR.numScales_);
+            % save responses among part and scale: CellPartCollection{partIdx}{scale}           
+            partIdx = 0;
+            for cIdx = 1:size(CellPartCollection, 2)/2                
+                CellPartCollection{cIdx} = cell(1, CFR.numScales_);                
                 for scale = 1:CFR.numScales_
-                    CellPartCollection{partIdx}{scale} = CFR.Responses_{scale}{partIdx};
+                    if 1 == cIdx
+                        CellPartCollection{cIdx}{scale} = CFR.Responses_{scale}.root_response{1};                        
+                    else
+                        CellPartCollection{cIdx}{scale} = CFR.Responses_{scale}.part_response{partIdx};                        
+                    end
                 end
+                partIdx = partIdx + 1;
+            end
+            partIdx = 0;
+            for cIdx = size(CellPartCollection, 2)/2+1:size(CellPartCollection, 2)
+                CellPartCollection{cIdx} = cell(1, CFR.numScales_);
+                for scale = 1:CFR.numScales_
+                    if size(CellPartCollection, 2)/2+1 == cIdx
+                        CellPartCollection{cIdx}{scale} = CFR.Responses_{scale}.root_response{1};                        
+                    else
+                        CellPartCollection{cIdx}{scale} = CFR.Responses_{scale}.part_response{partIdx};                        
+                    end
+                end
+                partIdx = partIdx + 1;
             end
             
             % save parts as member properties(=variables)
-            CFR.root = CellPartCollection{1}; CFR.rootF = CellPartCollection{2};
-            CFR.head = CellPartCollection{3}; CFR.headF = CellPartCollection{4};            
-            CFR.f1 = CellPartCollection{5};   CFR.f1F = CellPartCollection{6};
-            CFR.s1 = CellPartCollection{7};   CFR.s1F = CellPartCollection{8};
-            CFR.gr = CellPartCollection{9};   CFR.grF = CellPartCollection{10};
-            CFR.s2 = CellPartCollection{11};  CFR.s2F = CellPartCollection{12};
-            CFR.a1 = CellPartCollection{13};  CFR.a1F = CellPartCollection{14};
-            CFR.a2 = CellPartCollection{15};  CFR.a2F = CellPartCollection{16};
-            CFR.f2 = CellPartCollection{17};  CFR.f2F = CellPartCollection{18};
+            CFR.root = CellPartCollection{1}; CFR.rootF = CellPartCollection{10};
+            CFR.head = CellPartCollection{2}; CFR.headF = CellPartCollection{11};            
+            CFR.f1 = CellPartCollection{3};   CFR.f1F = CellPartCollection{12};
+            CFR.s1 = CellPartCollection{4};   CFR.s1F = CellPartCollection{13};
+            CFR.gr = CellPartCollection{5};   CFR.grF = CellPartCollection{14};
+            CFR.s2 = CellPartCollection{6};   CFR.s2F = CellPartCollection{15};
+            CFR.a1 = CellPartCollection{7};   CFR.a1F = CellPartCollection{16};
+            CFR.a2 = CellPartCollection{8};   CFR.a2F = CellPartCollection{17};
+            CFR.f2 = CellPartCollection{9};   CFR.f2F = CellPartCollection{18};
         end
         
         % setter
@@ -125,9 +145,14 @@ classdef CFilterResponse < handle
         end
         
         % show filter response
-        function frshow(CFR, partName, scale, doFlip)
-            curResponse = GetPartResponse(CFR, partName, scale, doFlip);
-            imshow(curResponse, 'Border', 'Tight');
+        function ResponseShow(CFR, partName, scale, doFlip)
+            curResponse = GetPartResponse(CFR, partName, scale, doFlip); 
+            figResponse = figure();
+            colormap parula;
+            imagesc(curResponse);
+            truesize(figResponse, size(curResponse));
+            colorbar;
+            % imshow(curResponse, 'Border', 'Tight');
         end
     end
 end
