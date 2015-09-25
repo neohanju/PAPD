@@ -90,16 +90,21 @@ pyra = featpyramid(double(im), model);
 
 % Get part candidates (root + 8 parts) 
 %       this contains part locations and scores
-[coords, partscores] = cascade_part_candidates(pyra, csc_model, csc_model.thresh);
+[coords, partscores] = cascade_part_candidates(pyra, model, model.thresh);
+[sortO, sortI] = sort(model.cascade.order{1}(1:9));
+partscores = partscores(sortI,:);
 
 % Show detection results
 dets = coords([1:4 end-1 end],:)';
 I = nms(dets, 0.5);
 figure;
 imshow(im);
-showboxes(im, dets(I,:));
+% showboxes(im, dets(I,:));
+showboxes(im, coords(1:end-2,I)');
 
 % Save part candidates
-save('part_candidates.mat', 'coords', 'partscores');
+save('data/part_candidates.mat', 'coords', 'partscores');
+
+
 
 
