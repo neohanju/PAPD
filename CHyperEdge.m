@@ -1,6 +1,7 @@
 classdef CHyperEdge
     
     properties
+        configurations
         parts
         weight = double(0.0)
     end
