@@ -89,7 +89,7 @@ numComponent = length(unique(coords(end-1,:)));
 [numPartTypes, numDetections] = size(partscores);
 
 %==========================================
-% NON-MAXIMAL SUPPRESSION
+% NON-MAXIMAL SUPPRESSION WITH EACH PART
 %==========================================
 numParts = 0;
 cellIndexAmongType = cell(numPartTypes, numComponent); % array positions of a specific part and component
@@ -130,8 +130,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% GRAPH CONSTRUCT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% generate vertices with part responses
-% define edge weights
+
+CPHG = CPartHyperGraph(listCParts, cellIndexAmongType);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIMIZATION

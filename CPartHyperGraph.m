@@ -9,38 +9,68 @@ classdef CPartHyperGraph
         % constructor
         function CPHG = CPartHyperGraph(listPartInfos, cellIndexAmongType)            
             
-            numHyperEdges = 0;
-            numLinkEdges = 0;
-            
             [numPartTypes, numComponents] = size(cellIndexAmongType);
+            numHyperEdges = 0;
+            numLinkEdges = 0;            
             
             %==========================================
             % ENUMERATE HYPER EDGES
             %==========================================
-            
-            % head 반드시 포함되게 할 것, root는 고려하지 않을 것
-            
+                       
             % generate configurations
-            configurations = zeros(2^(numPartTypes-2), numPartTypes);
-            combinations = [];
+            % (head 반드시 포함되게 할 것, root는 고려하지 않을 것)
+            configurations = zeros(numComponents*2^(numPartTypes-2), numPartTypes);
             for cIdx = 1:size(configurations, 1)
-                flags = ['01', dec2bin(cIdx-1, numPartTypes-2)];                 
+                flags = ['01', dec2bin(cIdx-1, numPartTypes-2)];                    
                 for typeIdx = 1:numPartTypes
-                    configurations(cIdx,typeIdx) = str2double(flags(typeIdx));
-                    if 0 == configurations(cIdx,typeIdx), continue; end
-                    
-                    newCombinations = [];
-                    for partIdx = cellIndexAmongType{typeIdx}
-                        for combIdx = 1:size(combinations, 1)
-                            curNewCombination = combinations(combIdx);
-                            curNewCombination(typeIdx) = partIdx;
-                            newCombinations = [newCombinations; curNewCombination];
-                        end
+                    configurations(cIdx,typeIdx) = str2double(flags(typeIdx));                        
+                end                    
+            end
+            
+            % generate combinations 
+            % (apart from configuration generation for the combinience of the code readability)
+            combinations = [];
+            for componentIdx = 1:numComponents
+                for cIdx = 1:size(configurations, 1)
+                    combinationsInCurConfiguration = zeros(1, numPartTypes);
+                    for typeIdx = 1:numPartTypes
+                        % bit check
+                        if 0 == configurations(cIdx,typeIdx), continue; end
+
+                        % generate new combinations with boxes of the current part type
+                        numNewCombinations = size(combinationsInCurConfiguration, 1)...
+                            *length(cellIndexAmongType{typeIdx,componentIdx});
+                        newCombinations = zeros(numNewCombinations, numPartTypes);
+                        newCombinationIdx = 0;                        
+                        for combIdx = 1:size(combinationsInCurConfiguration, 1)
+                            for partIdx = cellIndexAmongType{typeIdx,componentIdx}   
+                                % check compatibility between parts
+                                bIsCompatible = true;
+                                for preInsertedPartIdx = 1:typeIdx-1
+                                   if 0 == combinationsInCurConfiguration(combIdx,preInsertedPartIdx), continue; end
+                                   if IsCompatible(listPartInfos(preInsertedPartIdx), listPartInfos(partIdx))
+                                       bIsCompatible = false;
+                                       break;
+                                   end
+                                end                                
+                                if ~bIsCompatible, continue; end
+                                
+                                % save combination
+                                newCombinationIdx = newCombinationIdx + 1;
+                                newCombinations(newCombinationIdx,:) = ...
+                                    combinationsInCurConfiguration(combIdx,:);
+                                newCombinations(newCombinationIdx,typeIdx) = partIdx;
+                            end
+                        end                    
+                        combinationsInCurConfiguration = newCombinations;
                     end
-                    
-                    combinations = newCombinations;
+                    combinations = [combinations; combinationsInCurConfiguration];
                 end
             end
+            
+            %==========================================
+            % ENUMERATE LINK EDGES
+            %==========================================
             
 %             % generate part associations
 %             combinations = [];
