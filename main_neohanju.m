@@ -85,8 +85,10 @@ imageScale = 2.0;
 %% PART RESPONSE AND PRE-PROCESSING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 load data/part_candidates.mat;
+load model/INRIAPERSON_star.mat; % Load DPM model
 numComponent = length(unique(coords(end-1,:)));
 [numPartTypes, numDetections] = size(partscores);
+numPartTypes = numPartTypes - 1; % since the last row of partscores is "pyramidLevel"
 
 %==========================================
 % NON-MAXIMAL SUPPRESSION WITH EACH PART
@@ -113,9 +115,10 @@ for componentIdx = 1:numComponent
         for candidateIdx = pickedIdx'
             curScore = curComponentScores(typeIdx,candidateIdx);
             curCoord = curCoords(:,candidateIdx)';
-            
+            curPyraLevel =  curComponentScores(end, candidateIdx);
+            curScale = 2 / ( 2 ^ ( 1 / model.interval ) )^(curPyraLevel-1);            
             numParts = numParts + 1;
-            listCParts(numParts) = CPart(componentIdx, typeIdx, curCoord, curScore);
+            listCParts(numParts) = CPart(componentIdx, typeIdx, curCoord, curScore, curPyraLevel, curScale);
             curArrayIndex = [curArrayIndex, numParts];
         end
         
@@ -125,6 +128,29 @@ for componentIdx = 1:numComponent
         typeOffset = typeOffset + 4;
     end
 end
+
+
+%------------------------
+% test codes
+%------------------------
+imshow(image);
+P1 = listCParts(100);
+for i = 1 : length(listCParts)
+    P2 = listCParts(i);
+    if (CheckCompatibility(P1, P2, model) == true)
+        
+        Box1 = GetBox(P1) / imageScale;
+        Box2 = GetBox(P2) / imageScale;
+        rectangle('Position', Box1, 'EdgeColor', 'r');
+        rectangle('Position', Box2, 'EdgeColor', 'b');
+        pause;
+    end
+    fprintf('%d\n',i);
+end
+%------------------------
+% test codes END
+%------------------------
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

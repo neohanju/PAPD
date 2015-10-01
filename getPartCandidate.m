@@ -1,4 +1,3 @@
-% Load cascade dpm model
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Name : GET PART CANDIDATES
 % Date : 2015.09.24
@@ -92,7 +91,7 @@ pyra = featpyramid(double(im), model);
 %       this contains part locations and scores
 [coords, partscores] = cascade_part_candidates(pyra, model, model.thresh);
 [sortO, sortI] = sort(model.cascade.order{1}(1:9));
-partscores = partscores(sortI,:);
+partscores = partscores([sortI 10],:);
 
 % Show detection results
 dets = coords([1:4 end-1 end],:)';
