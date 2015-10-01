@@ -106,7 +106,7 @@ for componentIdx = 1:numComponent
         % non-maximal suppression
         curCoords = curComponents(typeOffset:typeOffset+3,:);
         curScores = curComponentScores(typeIdx,:);
-        pickedIdx = nms2([curCoords; curScores]', 0.8);        
+        pickedIdx = nms2([curCoords; curScores]', 0.3);
         
         % save candidates part into 'CPart' class instances
         curArrayIndex = [];

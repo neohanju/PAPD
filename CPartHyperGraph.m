@@ -31,10 +31,12 @@ classdef CPartHyperGraph
             % (apart from configuration generation for the combinience of the code readability)
             combinations = [];
             for componentIdx = 1:numComponents
+                fprintf('Component: %d/%d\n', componentIdx, numComponents);
                 for cIdx = 1:size(configurations, 1)
+                    fprintf('Configuration: %d/%d:...', cIdx, size(configurations, 1));
                     combinationsInCurConfiguration = zeros(1, numPartTypes);
                     for typeIdx = 1:numPartTypes
-                        % bit check
+                        % bit check                        
                         if 0 == configurations(cIdx,typeIdx), continue; end
 
                         % generate new combinations with boxes of the current part type
@@ -43,27 +45,27 @@ classdef CPartHyperGraph
                         newCombinations = zeros(numNewCombinations, numPartTypes);
                         newCombinationIdx = 0;                        
                         for combIdx = 1:size(combinationsInCurConfiguration, 1)
+                            curCombination = combinationsInCurConfiguration(combIdx,:);
                             for partIdx = cellIndexAmongType{typeIdx,componentIdx}   
                                 % check compatibility between parts
                                 bIsCompatible = true;
-                                for preInsertedPartIdx = 1:typeIdx-1
-                                   if 0 == combinationsInCurConfiguration(combIdx,preInsertedPartIdx), continue; end
-                                   if IsCompatible(listPartInfos(preInsertedPartIdx), listPartInfos(partIdx))
-                                       bIsCompatible = false;
-                                       break;
-                                   end
+                                for preInsertedPartIdx = curCombination                                    
+                                    if 0 == preInsertedPartIdx, continue; end
+                                    bIsCompatible = CheckCompatibility(...
+                                        listPartInfos(preInsertedPartIdx), listPartInfos(partIdx));
+                                    if ~bIsCompatible, break; end
                                 end                                
                                 if ~bIsCompatible, continue; end
                                 
                                 % save combination
                                 newCombinationIdx = newCombinationIdx + 1;
-                                newCombinations(newCombinationIdx,:) = ...
-                                    combinationsInCurConfiguration(combIdx,:);
+                                newCombinations(newCombinationIdx,:) = curCombination;
                                 newCombinations(newCombinationIdx,typeIdx) = partIdx;
                             end
                         end                    
                         combinationsInCurConfiguration = newCombinations;
                     end
+                    fprintf('%d sets are made\n', size(combinationsInCurConfiguration, 1));
                     combinations = [combinations; combinationsInCurConfiguration];
                 end
             end
