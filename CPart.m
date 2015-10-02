@@ -52,39 +52,29 @@ classdef CPart
 %                 if CP1.coords(2) > CP2.coords(2), resultFlag = false; return; end
 %             end
 %         end
-
-%         function weight = GetWeight(CP1, CP2, model)
         function resultFlag = CheckCompatibility(CP1, CP2, model)
-            resultFlag = true;
-            if CP1.type == 1 || CP2.type == 1 || CP1.type == CP2.type
-                % 'root' type is not considered in this function.
-                resultFlag = false;
-                return;
-            end
-            anchor1 = model.defs{CP1.type - 1}.anchor;
-            anchor2 = model.defs{CP2.type - 1}.anchor;
+            resultFlag = false;
+            if CP1.type == CP2.type, return; end
+            
             % relative distance between two parts ('s anchors)
-            anchorDistance = anchor2 - anchor1;            
-            anchorDistanceInPixel = anchorDistance * (model.sbin / 2 * CP1.scale); 
+            anchor1 = model.defs{CP1.type-1}.anchor;
+            anchor2 = model.defs{CP2.type-1}.anchor;
+            anchorDistance = anchor2 - anchor1;
+            
             % relative center distance 
-            center1 = [(CP1.coords(1)+CP1.coords(3))/2, (CP1.coords(2)+CP1.coords(4))/2];
-            center2 = [(CP2.coords(1)+CP2.coords(3))/2, (CP2.coords(2)+CP2.coords(4))/2];
+            center1 = 0.5*[(CP1.coords(1)+CP1.coords(3)), (CP1.coords(2)+CP1.coords(4))];
+            center2 = 0.5*[(CP2.coords(1)+CP2.coords(3)), (CP2.coords(2)+CP2.coords(4))];
             centerDistanceInPixel = center2 - center1;
-            centerDistance = centerDistanceInPixel / (model.sbin / 2 * CP1.scale);
+            centerDistance = 2 * centerDistanceInPixel / (model.sbin * CP1.scale);
+            
             % displacement between desired part center and real center
             displacement = abs(anchorDistance - centerDistance);
+            
             % thresholds (to be designed)
             xThre = 9;
             yThre = 9;
-            if (displacement(1) < xThre && displacement(2) < yThre)
-                resultFlag = true;   
-%                 fprintf(' Part1 type: %d, Part2 type: %d\n', CP1.type, CP2.type);
-%                 fprintf(' anchorDistanceInPixel: (%f, %f)\n centerDistanceInPixel: (%f,%f)\n', anchorDistanceInPixel, centerDistanceInPixel);
-%                 fprintf(' anchorDistance: (%f, %f)\n centerDistance: (%f,%f)\n', anchorDistance, centerDistance);                                
-%                 fprintf(' displacement: (%f, %f)\n', displacement);                
-            else 
-                resultFlag = false;
-            end
+            if displacement(1) > xThre || displacement(2) > yThre, return; end;
+            resultFlag = true;
         end       
         
     end

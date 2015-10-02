@@ -130,26 +130,26 @@ for componentIdx = 1:numComponent
 end
 
 
-%------------------------
-% test codes
-%------------------------
-imshow(image);
-P1 = listCParts(100);
-for i = 1 : length(listCParts)
-    P2 = listCParts(i);
-    if (CheckCompatibility(P1, P2, model) == true)
-        
-        Box1 = GetBox(P1) / imageScale;
-        Box2 = GetBox(P2) / imageScale;
-        rectangle('Position', Box1, 'EdgeColor', 'r');
-        rectangle('Position', Box2, 'EdgeColor', 'b');
-        pause;
-    end
-    fprintf('%d\n',i);
-end
-%------------------------
-% test codes END
-%------------------------
+% %------------------------
+% % test codes
+% %------------------------
+% imshow(image);
+% P1 = listCParts(100);
+% for i = 1 : length(listCParts)
+%     P2 = listCParts(i);
+%     if (CheckCompatibility(P1, P2, model) == true)
+%         
+%         Box1 = GetBox(P1) / imageScale;
+%         Box2 = GetBox(P2) / imageScale;
+%         rectangle('Position', Box1, 'EdgeColor', 'r');
+%         rectangle('Position', Box2, 'EdgeColor', 'b');
+%         pause;
+%     end
+%     fprintf('%d\n',i);
+% end
+% %------------------------
+% % test codes END
+% %------------------------
 
 
 
@@ -157,8 +157,8 @@ end
 %% GRAPH CONSTRUCT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-CPHG = CPartHyperGraph(listCParts, cellIndexAmongType);
-
+% CPG = CPartGraph(listCParts, cellIndexAmongType, model);
+load 'combinations.mat';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIMIZATION
@@ -188,36 +188,25 @@ for typeIdx = 1:numPartTypes
     hold off;
 end
 
+numPartsInCombination = zeros(size(combinations, 1), 1);
+for combIdx = 1:size(combinations,1)
+    curCombination = combinations(combIdx,:);
+    numPartsInCombination(combIdx) = numel(curCombination(curCombination ~= 0));
+end
 
-% % input frame
-% subplot(2, 2, 1);
-% imshow(image, 'border', 'tight'); hold on;
-% title('frame image');
-% hold off;
-% 
-% % draw response
-% subplot(2, 2, 2);
-% colormap parula;
-% imagesc(rootRes); hold on
-% title(['response of ' targetPart]);
-% hold off;
-% 
-% % draw peaks
-% subplot(2, 2, 3);
-% colormap parula;
-% imagesc(rootRes); hold on
-% plot(peakXs, peakYs, 'r+');
-% title('peaks on the response');
-% hold off;
-% 
-% % peak map
-% subplot(2, 2, 4);
-% colormap parula;
-% imagesc(peakMap); hold on;
-% title('peak map');
-% hold off;
+fullPartCombination = combinations(8 == numPartsInCombination,:);
 
-
+figure(100);
+imshow(image, 'border', 'tight');
+hold on;
+for combIdx = 1:size(fullPartCombination,1)
+    curCombination = fullPartCombination(combIdx,:);
+    for typeIdx = 2:9
+        curBox = GetBox(listCParts(curCombination(typeIdx))) / imageScale;
+        rectangle('Position', curBox, 'EdgeColor', GetColor(CDC, typeIdx));
+    end
+end
+hold off;
 
 %()()
 %('') HAANJU.YOO
