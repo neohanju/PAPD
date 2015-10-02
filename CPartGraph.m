@@ -68,11 +68,11 @@ classdef CPartGraph
                                 newCombinations(newCombinationIdx,typeIdx) = partIdx;
                                 
                                 % generate vertex
-                                numVertex = numVertex + 1;
-                                curListPartInfoIdx = newCombinations(newCombinationIdx,:);
-                                curListPartInfoIdx = curListPartInfoIdx(0 ~= curListPartInfoIdx);
-                                curListPartInfo = listPartInfos(curListPartInfoIdx);
-                                CPG.Vertex(numVertex) = CVertex(numVertex, configurations, curListPartInfo, 0.0);
+%                                 numVertex = numVertex + 1;
+%                                 curListPartInfoIdx = newCombinations(newCombinationIdx,:);
+%                                 curListPartInfoIdx = curListPartInfoIdx(0 ~= curListPartInfoIdx);
+%                                 curListPartInfo = listPartInfos(curListPartInfoIdx);
+%                                 CPG.Vertex(numVertex) = CVertex(numVertex, configurations, curListPartInfo, 0.0);
                             end
                         end                    
                         combinationsInCurConfiguration = newCombinations(1:newCombinationIdx, :);

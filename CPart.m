@@ -65,7 +65,7 @@ classdef CPart
             center1 = 0.5*[(CP1.coords(1)+CP1.coords(3)), (CP1.coords(2)+CP1.coords(4))];
             center2 = 0.5*[(CP2.coords(1)+CP2.coords(3)), (CP2.coords(2)+CP2.coords(4))];
             centerDistanceInPixel = center2 - center1;
-            centerDistance = 2 * centerDistanceInPixel / (model.sbin * CP1.scale);
+            centerDistance = 2 * CP1.scale * centerDistanceInPixel / model.sbin;
             
             % displacement between desired part center and real center
             displacement = abs(anchorDistance - centerDistance);

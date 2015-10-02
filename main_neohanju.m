@@ -130,15 +130,25 @@ for componentIdx = 1:numComponent
 end
 
 
-% %------------------------
-% % test codes
-% %------------------------
+%------------------------
+% test codes
+%------------------------
 % imshow(image);
-% P1 = listCParts(100);
+% for i = 1 : length(cellIndexAmongType{4,1})
+%     P1 = listCParts(cellIndexAmongType{4,1}(i));
+%     Box1 = GetBox(P1) / imageScale;
+%     cellIndexAmongType{4,1}(i)
+%     rectangle('Position', Box1, 'EdgeColor', 'r');
+%     pause;
+% end
+% 
+% P1 = listCParts(28);
 % for i = 1 : length(listCParts)
 %     P2 = listCParts(i);
-%     if (CheckCompatibility(P1, P2, model) == true)
-%         
+%     if (P1.type == 1 || P2.type == 1)
+%         continue;
+%     end
+%     if (CheckCompatibility(P1, P2, model) == true)       
 %         Box1 = GetBox(P1) / imageScale;
 %         Box2 = GetBox(P2) / imageScale;
 %         rectangle('Position', Box1, 'EdgeColor', 'r');
@@ -147,9 +157,9 @@ end
 %     end
 %     fprintf('%d\n',i);
 % end
-% %------------------------
-% % test codes END
-% %------------------------
+%------------------------
+% test codes END
+%------------------------
 
 
 
