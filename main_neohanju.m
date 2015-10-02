@@ -141,25 +141,41 @@ end
 %     rectangle('Position', Box1, 'EdgeColor', 'r');
 %     pause;
 % end
-% 
 % P1 = listCParts(28);
+% CDC = CDistinguishableColors();
+% P1_neighbor = [28, P1.type];
 % for i = 1 : length(listCParts)
 %     P2 = listCParts(i);
 %     if (P1.type == 1 || P2.type == 1)
 %         continue;
 %     end
-%     if (CheckCompatibility(P1, P2, model) == true)       
+%     if (CheckCompatibility(P1, P2, model) == true ...
+%             && CheckCompatibility(P2, P1, model) == true)  
+%         P1_neighbor = [P1_neighbor; i, P2.type];
 %         Box1 = GetBox(P1) / imageScale;
 %         Box2 = GetBox(P2) / imageScale;
-%         rectangle('Position', Box1, 'EdgeColor', 'r');
-%         rectangle('Position', Box2, 'EdgeColor', 'b');
-%         pause;
+%         rectangle('Position', Box1, 'EdgeColor', GetColor(CDC, P1.type));
+%         rectangle('Position', Box2, 'EdgeColor', GetColor(CDC, P2.type));
+%         fprintf('i = %d, type = %d\n',i, P2.type);
 %     end
-%     fprintf('%d\n',i);
+% %     fprintf('%d\n',i);
 % end
-%------------------------
+% matCompatibility = zeros(9,9);
+% for i = 1 : size(P1_neighbor,1)
+%     for j = 1: size(P1_neighbor,1)
+%         PN1 = listCParts(P1_neighbor(i,1));
+%         PN2 = listCParts(P1_neighbor(j,1));
+%         if (CheckCompatibility(PN1, PN2, model) == true ...
+%             && CheckCompatibility(PN2, PN1, model) == true)  
+%             matCompatibility(PN1.type,PN2.type) = 1;
+%         end
+%     end
+% end
+% matCompatibility
+% pause;
+% ------------------------
 % test codes END
-%------------------------
+% ------------------------
 
 
 
@@ -167,7 +183,7 @@ end
 %% GRAPH CONSTRUCT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% CPG = CPartGraph(listCParts, cellIndexAmongType, model);
+CPG = CPartGraph(listCParts, cellIndexAmongType, model);
 load 'combinations.mat';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -205,16 +221,35 @@ for combIdx = 1:size(combinations,1)
 end
 
 fullPartCombination = combinations(8 == numPartsInCombination,:);
-
+% draw all parts of the combination results 
 figure(100);
 imshow(image, 'border', 'tight');
 hold on;
+BBs = [];
 for combIdx = 1:size(fullPartCombination,1)
     curCombination = fullPartCombination(combIdx,:);
+    curPartBoxes = [];
     for typeIdx = 2:9
         curBox = GetBox(listCParts(curCombination(typeIdx))) / imageScale;
         rectangle('Position', curBox, 'EdgeColor', GetColor(CDC, typeIdx));
+        curPartBoxes = [curPartBoxes; curBox];
     end
+    % Save bounding boxes of full body
+    %   should be modified when consider partial body.
+    BB = []; % [x y w h]
+    BB(1) = min(curPartBoxes(:,1));
+    BB(2) = min(curPartBoxes(:,2));
+    BB(3) = max(curPartBoxes(:,1) + curPartBoxes(:,3)) - BB(1);
+    BB(4) = max(curPartBoxes(:,2) + curPartBoxes(:,4)) - BB(2);
+    BBs = [BBs; BB]; 
+end
+hold off;
+% draw bounding boxes of the combination results
+figure(101);
+imshow(image, 'border', 'tight');
+hold on;
+for combIdx = 1:size(fullPartCombination,1)
+    rectangle('Position', BBs(combIdx,:), 'EdgeColor', GetColor(CDC, 10));
 end
 hold off;
 

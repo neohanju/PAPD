@@ -83,7 +83,7 @@ classdef CPartGraph
                 
             end
             
-%             save 'combinations.mat', 'combinations';
+            save 'combinations.mat', 'combinations';
             
             %==========================================
             % ENUMERATE LINK EDGES
