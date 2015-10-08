@@ -1,22 +1,22 @@
 classdef CVertex
     properties
         id
-        configuration
+        combination
         partInfos
         weight
         adjacentVetices
         edges
     end
     methods
-        function CV = CVertex(id, configuration, listPartInfo, weight)
+        function CV = CVertex(id, combination, listPartInfo, weight)
             CV.id = id;
-            CV.configuration = configuration;
+            CV.combination = combination;
             CV.partInfos = listPartInfo;
             CV.weight = weight;
             CV.adjacentVetices = [];
             CV.edges = [];
         end
-        function CV = refresh(CV)
+        function CV = update(CV)
             CV.adjacentVetices = unique(CV.adjacentVetices);
             CV.adjacentVetices = sort(CV.adjacentVetices, 'ascend');
             CV.edges = unique(CV.edges);

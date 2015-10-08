@@ -94,6 +94,7 @@ numPartTypes = numPartTypes - 1; % since the last row of partscores is "pyramidL
 % NON-MAXIMAL SUPPRESSION WITH EACH PART
 %==========================================
 numParts = 0;
+listCParts = CPart.empty();
 cellIndexAmongType = cell(numPartTypes, numComponent); % array positions of a specific part and component
 for componentIdx = 1:numComponent
     
@@ -180,11 +181,11 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% GRAPH CONSTRUCT
+%% ASSOCIATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-CPG = CPartGraph(listCParts, cellIndexAmongType, model);
-load 'combinations.mat';
+% 
+% listAssociations = GenerateDetections(listCParts, cellIndexAmongType, model);
+% save detections.mat detections;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIMIZATION
@@ -201,57 +202,62 @@ load 'combinations.mat';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 CDC = CDistinguishableColors();
 
-for typeIdx = 1:numPartTypes
-    figure(typeIdx);
-    imshow(image, 'border', 'tight');
-    hold on;
-    for partIdx = 1:numParts
-        if typeIdx ~= listCParts(partIdx).type, continue; end
-
-        curBox = GetBox(listCParts(partIdx)) / imageScale;
-        rectangle('Position', curBox, 'EdgeColor', GetColor(CDC, listCParts(partIdx).type));
-    end
-    hold off;
-end
-
-numPartsInCombination = zeros(size(combinations, 1), 1);
-for combIdx = 1:size(combinations,1)
-    curCombination = combinations(combIdx,:);
-    numPartsInCombination(combIdx) = numel(curCombination(curCombination ~= 0));
-end
-
-fullPartCombination = combinations(8 == numPartsInCombination,:);
-% draw all parts of the combination results 
-figure(100);
-imshow(image, 'border', 'tight');
-hold on;
-BBs = [];
-for combIdx = 1:size(fullPartCombination,1)
-    curCombination = fullPartCombination(combIdx,:);
-    curPartBoxes = [];
-    for typeIdx = 2:9
-        curBox = GetBox(listCParts(curCombination(typeIdx))) / imageScale;
-        rectangle('Position', curBox, 'EdgeColor', GetColor(CDC, typeIdx));
-        curPartBoxes = [curPartBoxes; curBox];
-    end
-    % Save bounding boxes of full body
-    %   should be modified when consider partial body.
-    BB = []; % [x y w h]
-    BB(1) = min(curPartBoxes(:,1));
-    BB(2) = min(curPartBoxes(:,2));
-    BB(3) = max(curPartBoxes(:,1) + curPartBoxes(:,3)) - BB(1);
-    BB(4) = max(curPartBoxes(:,2) + curPartBoxes(:,4)) - BB(2);
-    BBs = [BBs; BB]; 
+roots = coords(1:4,:);
+rootRects = roots' / imageScale;
+rootRects(:,3) = rootRects(:,3) - rootRects(:,1) + 1;
+rootRects(:,4) = rootRects(:,4) - rootRects(:,2) + 1;
+figure; imshow(image, 'border', 'tight'); hold on;
+for rectIdx = 1:size(rootRects, 1)
+    rectangle('Position', rootRects(rectIdx,:), 'EdgeColor', GetColor(CDC, 2));
 end
 hold off;
-% draw bounding boxes of the combination results
-figure(101);
-imshow(image, 'border', 'tight');
-hold on;
-for combIdx = 1:size(fullPartCombination,1)
-    rectangle('Position', BBs(combIdx,:), 'EdgeColor', GetColor(CDC, 10));
-end
-hold off;
+
+% for typeIdx = 1:numPartTypes
+%     curListCParts = CPart.empty();
+%     for componentIdx = 1:numComponent
+%         curListCParts = [curListCParts, listCParts(cellIndexAmongType{typeIdx,componentIdx})];
+%     end
+%     DrawPart(image, curListCParts, CDC, imageScale, typeIdx);
+% end
+
+% numPartsInCombination = zeros(size(combinations, 1), 1);
+% for combIdx = 1:size(combinations,1)
+%     curCombination = combinations(combIdx,:);
+%     numPartsInCombination(combIdx) = numel(curCombination(curCombination ~= 0));
+% end
+% 
+% fullPartCombination = combinations(8 == numPartsInCombination,:);
+% % draw all parts of the combination results 
+% figure(100);
+% imshow(image, 'border', 'tight');
+% hold on;
+% BBs = [];
+% for combIdx = 1:size(fullPartCombination,1)
+%     curCombination = fullPartCombination(combIdx,:);
+%     curPartBoxes = [];
+%     for typeIdx = 2:9
+%         curBox = GetBox(listCParts(curCombination(typeIdx))) / imageScale;
+%         rectangle('Position', curBox, 'EdgeColor', GetColor(CDC, typeIdx));
+%         curPartBoxes = [curPartBoxes; curBox];
+%     end
+%     % Save bounding boxes of full body
+%     %   should be modified when consider partial body.
+%     BB = []; % [x y w h]
+%     BB(1) = min(curPartBoxes(:,1));
+%     BB(2) = min(curPartBoxes(:,2));
+%     BB(3) = max(curPartBoxes(:,1) + curPartBoxes(:,3)) - BB(1);
+%     BB(4) = max(curPartBoxes(:,2) + curPartBoxes(:,4)) - BB(2);
+%     BBs = [BBs; BB]; 
+% end
+% hold off;
+% % draw bounding boxes of the combination results
+% figure(101);
+% imshow(image, 'border', 'tight');
+% hold on;
+% for combIdx = 1:size(fullPartCombination,1)
+%     rectangle('Position', BBs(combIdx,:), 'EdgeColor', GetColor(CDC, 10));
+% end
+% hold off;
 
 %()()
 %('') HAANJU.YOO
