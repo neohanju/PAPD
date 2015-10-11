@@ -1,6 +1,16 @@
-function [listDetections] = GenerateDetections(listPartInfos, cellIndexAmongType, model)
+function [listDetections] = GenerateDetections(listPartInfos, cellIndexAmongType, model, occlusionMap, occlusionOverlapRatio)
+
+if nargin < 5, occlusionOverlapRatio = 0.8; end
+if nargin < 4
+    bOcclusionPrior = false;
+    occlusionMap = [];
+else
+    bOcclusionPrior = true; 
+end
 
 [numPartTypes, numComponents] = size(cellIndexAmongType);
+numDetection = 0;
+listDetections = CDetection.empty();
 
 %==========================================
 % CONFIGURATIONS
@@ -48,11 +58,23 @@ for componentIdx = 1:numComponents
                         if ~bIsCompatible, break; end
                     end                                
                     if ~bIsCompatible, continue; end
-
-                    % save combination
+                    
+                    % check occlusion prior
+                    curListPartInfoIdx = curCombination(0 ~= curCombination);
+                    curListPartInfo = listPartInfos(curListPartInfoIdx);
+                    if bOcclusionPrior && CheckMissingWithoutOcclusion(...
+                            curListPartInfo, model, occlusionMap, occlusionOverlapRatio);
+                        continue;
+                    end
+                    
+                    % save combination for propagation
                     newCombinationIdx = newCombinationIdx + 1;
                     newCombinations(newCombinationIdx,:) = curCombination;
                     newCombinations(newCombinationIdx,typeIdx) = partIdx;
+                    
+                    % save combination as a detection
+                    numDetection = numDetection + 1;
+                    listDetections(numDetection) = CDetection(curCombination, curListPartInfo, 0.0);
                 end
             end                    
             combinationsInCurConfiguration = newCombinations(1:newCombinationIdx, :);
@@ -63,16 +85,20 @@ for componentIdx = 1:numComponents
 
 end
 
-%==========================================
-% RESULT PACKAGING
-%==========================================
-numCombinations = size(combinations, 1);
-listDetections = CDetections.empty();
-for cIdx = 1:numCombinations
-    curListPartInfoIdx = combinations(cIdx,:);                
-    curListPartInfoIdx = curListPartInfoIdx(0 ~= curListPartInfoIdx);
-    curListPartInfo = listPartInfos(curListPartInfoIdx);                
-    listDetections(cIdx) = CDetection(combinations(cIdx,:), curListPartInfo, 0.0);
+end
+
+function bMissingWOOc = CheckMissingWithoutOcclusion(partList, model, occlusionMap, occlusionOverlapRatio)
+
+bMissingWOOc = false;
+if isempty(occlusionMap), return; end
+
+numParts = length(partList);
+CPHead = partList(1);
+anchorHead = model.defs{1}.anchor;
+pixelTo
+
+for partIdx = 1:numParts
+    
 end
 
 end

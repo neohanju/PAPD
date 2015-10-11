@@ -78,6 +78,7 @@ dbstop if error
 addpath library;
 
 image = imread('data/frame_0062.jpg');
+[imgH, imgW, imgC] = size(image);
 imageScale = 2.0;
 
 
@@ -96,6 +97,7 @@ numPartTypes = numPartTypes - 1; % since the last row of partscores is "pyramidL
 numParts = 0;
 listCParts = CPart.empty();
 cellIndexAmongType = cell(numPartTypes, numComponent); % array positions of a specific part and component
+partMap = zeros(imageScale * imgH, imageScale * imgW);
 for componentIdx = 1:numComponent
     
     % get data of current component
@@ -121,6 +123,9 @@ for componentIdx = 1:numComponent
             numParts = numParts + 1;
             listCParts(numParts) = CPart(componentIdx, typeIdx, curCoord, curScore, curPyraLevel, curScale);
             curArrayIndex = [curArrayIndex, numParts];
+            
+            imageRect = round(curCoord);
+            partMap(imageRect(1):imageRect(3),imageRect(2):imageRect(4)) = 1.0;
         end
         
         % save specific part positions locations in the array of class
@@ -131,61 +136,13 @@ for componentIdx = 1:numComponent
 end
 
 
-%------------------------
-% test codes
-%------------------------
-% imshow(image);
-% for i = 1 : length(cellIndexAmongType{4,1})
-%     P1 = listCParts(cellIndexAmongType{4,1}(i));
-%     Box1 = GetBox(P1) / imageScale;
-%     cellIndexAmongType{4,1}(i)
-%     rectangle('Position', Box1, 'EdgeColor', 'r');
-%     pause;
-% end
-% P1 = listCParts(28);
-% CDC = CDistinguishableColors();
-% P1_neighbor = [28, P1.type];
-% for i = 1 : length(listCParts)
-%     P2 = listCParts(i);
-%     if (P1.type == 1 || P2.type == 1)
-%         continue;
-%     end
-%     if (CheckCompatibility(P1, P2, model) == true ...
-%             && CheckCompatibility(P2, P1, model) == true)  
-%         P1_neighbor = [P1_neighbor; i, P2.type];
-%         Box1 = GetBox(P1) / imageScale;
-%         Box2 = GetBox(P2) / imageScale;
-%         rectangle('Position', Box1, 'EdgeColor', GetColor(CDC, P1.type));
-%         rectangle('Position', Box2, 'EdgeColor', GetColor(CDC, P2.type));
-%         fprintf('i = %d, type = %d\n',i, P2.type);
-%     end
-% %     fprintf('%d\n',i);
-% end
-% matCompatibility = zeros(9,9);
-% for i = 1 : size(P1_neighbor,1)
-%     for j = 1: size(P1_neighbor,1)
-%         PN1 = listCParts(P1_neighbor(i,1));
-%         PN2 = listCParts(P1_neighbor(j,1));
-%         if (CheckCompatibility(PN1, PN2, model) == true ...
-%             && CheckCompatibility(PN2, PN1, model) == true)  
-%             matCompatibility(PN1.type,PN2.type) = 1;
-%         end
-%     end
-% end
-% matCompatibility
-% pause;
-% ------------------------
-% test codes END
-% ------------------------
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% ASSOCIATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 
-% listAssociations = GenerateDetections(listCParts, cellIndexAmongType, model);
-% save detections.mat detections;
+
+listDetections = GenerateDetections(listCParts, cellIndexAmongType, model, partMap);
+save detections.mat listDetections;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIMIZATION

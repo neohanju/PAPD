@@ -49,9 +49,5 @@ classdef CPart
             
             resultFlag = true;
         end
-        function resultFlag = IsCompatible(CP1, CP2, model)
-            resultFlag = false;
-            
-        end
     end
 end
