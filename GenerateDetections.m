@@ -16,7 +16,7 @@ listDetections = CDetection.empty();
 % CONFIGURATIONS
 %==========================================
 % (head 반드시 포함되게 할 것, root는 고려하지 않을 것)
-configurations = zeros(numComponents*2^(numPartTypes-2), numPartTypes);
+configurations = zeros(2^(numPartTypes-2), numPartTypes);
 for cIdx = 1:size(configurations, 1)
     flags = ['01', dec2bin(cIdx-1, numPartTypes-2)];                    
     for typeIdx = 1:numPartTypes
@@ -48,7 +48,8 @@ for componentIdx = 1:numComponents
             for combIdx = 1:size(combinationsInCurConfiguration, 1)
                 curCombination = combinationsInCurConfiguration(combIdx,:);
 
-                for partIdx = cellIndexAmongType{typeIdx,componentIdx}  
+                for partIdx = cellIndexAmongType{typeIdx,componentIdx} 
+                    
                     % check compatibility between parts
                     bIsCompatible = true;
                     for preInsertedPartIdx = curCombination                                    
@@ -57,20 +58,21 @@ for componentIdx = 1:numComponents
                             listPartInfos(preInsertedPartIdx), listPartInfos(partIdx), model);
                         if ~bIsCompatible, break; end
                     end                                
-                    if ~bIsCompatible, continue; end
+                    if ~bIsCompatible, continue; end                    
+                    newCombination = curCombination;
+                    newCombination(typeIdx) = partIdx;
                     
                     % check occlusion prior
-                    curListPartInfoIdx = curCombination(0 ~= curCombination);
+                    curListPartInfoIdx = newCombination(0 ~= newCombination);
                     curListPartInfo = listPartInfos(curListPartInfoIdx);
-                    if bOcclusionPrior && CheckMissingWithoutOcclusion(...
+                    if bOcclusionPrior && ~CheckPartOcclusion(...
                             curListPartInfo, model, occlusionMap, occlusionOverlapRatio);
                         continue;
                     end
                     
                     % save combination for propagation
                     newCombinationIdx = newCombinationIdx + 1;
-                    newCombinations(newCombinationIdx,:) = curCombination;
-                    newCombinations(newCombinationIdx,typeIdx) = partIdx;
+                    newCombinations(newCombinationIdx,:) = newCombination;
                     
                     % save combination as a detection
                     numDetection = numDetection + 1;
@@ -87,18 +89,37 @@ end
 
 end
 
-function bMissingWOOc = CheckMissingWithoutOcclusion(partList, model, occlusionMap, occlusionOverlapRatio)
+function bPartOccluded = CheckPartOcclusion(partList, model, occlusionMap, occlusionOverlapRatio)
 
-bMissingWOOc = false;
+bPartOccluded = true;
+% input check
 if isempty(occlusionMap), return; end
 
-numParts = length(partList);
-CPHead = partList(1);
+% anchor to pixel dimension
 anchorHead = model.defs{1}.anchor;
-pixelTo
+anchorW = 6;
+anchorH = 6;
+partW = round(partList(1).a2p * anchorW);
+partH = round(partList(1).a2p * anchorH);
+partArea = partW * partH;
+headPos = partList(1).coords(1:2);
 
-for partIdx = 1:numParts
-    
+% get missing part info
+currentParts = [partList.type];
+missingParts = 1:9; missingParts(currentParts) = []; missingParts(1) = [];
+
+% occlusion check
+for typeIdx = missingParts
+    curAnchor =  model.defs{typeIdx-1}.anchor;
+    vecPixelDiff = partList(1).a2p * (curAnchor - anchorHead);
+    candidatePos = round(headPos + vecPixelDiff);
+    occludedArea = sum(sum(occlusionMap(...
+        candidatePos(2):candidatePos(2)+partH-1,...
+        candidatePos(1):candidatePos(1)+partW-1)));
+    if occlusionOverlapRatio > occludedArea / partArea
+        bPartOccluded = false;
+        return;
+    end
 end
 
 end

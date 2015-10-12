@@ -8,15 +8,17 @@ classdef CPart
         score
         pyramidLevel
         scale
+        a2p % anchor scale to pixel scale
     end
     methods
-        function CP = CPart(component, type, coords, score, pyramidLevel, scale)
+        function CP = CPart(component, type, coords, score, pyramidLevel, scale, a2p)
             CP.component = component;
             CP.type = type;
             CP.coords = coords;
             CP.score = score;
             CP.pyramidLevel = pyramidLevel;
             CP.scale = scale;
+            CP.a2p = a2p;
         end
         function box = GetBox(CP)
             x = CP.coords(1);
@@ -27,11 +29,11 @@ classdef CPart
         end
         function resultFlag = IsAssociable(CP1, CP2, model)
             resultFlag = false;
-            if CP1.type == CP2.type, return; end
+            if CP1.type == CP2.type || CP1.component ~= CP2.component, return; end
             
             % relative distance between two parts ('s anchors)
-            anchor1 = model.defs{CP1.type-1}.anchor;
-            anchor2 = model.defs{CP2.type-1}.anchor;
+            anchor1 = model.defs{CP1.type-1+(CP1.component-1)*8}.anchor;
+            anchor2 = model.defs{CP2.type-1+(CP2.component-1)*8}.anchor;
             vecAnchorDiff = anchor2 - anchor1;
             
             % relative center distance 
@@ -48,6 +50,26 @@ classdef CPart
             if displacement(1) > xThre || displacement(2) > yThre, return; end;
             
             resultFlag = true;
+        end
+        function bNeighbor = IsNeighbor(CP1, CP2, model, overlapRatio, image)
+            bNeighbor = false;
+            rootSize = model.rootfilters{1}.size(end:-1:1) * 2; % {1} for component 1, and x2 to match the resolution with parts
+            root1Pos = [CP1.coords(1), CP1.coords(2)] - CP1.a2p * model.defs{CP1.type-1+(CP1.component-1)*8}.anchor;
+            root2Pos = [CP2.coords(1), CP2.coords(2)] - CP2.a2p * model.defs{CP2.type-1+(CP2.component-1)*8}.anchor;
+            root1Size = CP1.a2p * rootSize;
+            root2Size = CP2.a2p * rootSize;
+            root1Coords = [root1Pos, root1Pos + root1Size];
+            root2Coords = [root2Pos, root2Pos + root2Size];
+            
+%             figure(1); imshow(image, 'border', 'tight');
+%             headbox1 = GetBox(CP1) / 2;
+%             headbox2 = GetBox(CP2) / 2;
+%             rectangle('Position', headbox1, 'EdgeColor', [1, 0, 0]);
+%             rectangle('Position', headbox2, 'EdgeColor', [0, 1, 0]);
+%             rectangle('Position', [root1Rect(1),root1Rect(2),root1Size(1),root1Size(2)]/2, 'EdgeColor', [1, 0, 0]);
+%             rectangle('Position', [root2Rect(1),root2Rect(2),root2Size(1),root2Size(2)]/2, 'EdgeColor', [0, 1, 0]);
+            
+            if CheckOverlap(root1Coords, root2Coords, overlapRatio), bNeighbor = true; end
         end
     end
 end

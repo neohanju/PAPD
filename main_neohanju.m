@@ -69,14 +69,18 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+dbstop if error
+addpath library;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER AND PRESET, INPUT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-dbstop if error
-addpath library;
+% parameters
+PART_NMX_OVERLAP = 0.3;
+CLUSTER_OVERLAP = 0.1;
 
+% input
 image = imread('data/frame_0062.jpg');
 [imgH, imgW, imgC] = size(image);
 imageScale = 2.0;
@@ -111,7 +115,7 @@ for componentIdx = 1:numComponent
         % non-maximal suppression
         curCoords = curComponents(typeOffset:typeOffset+3,:);
         curScores = curComponentScores(typeIdx,:);
-        pickedIdx = nms2([curCoords; curScores]', 0.3);
+        pickedIdx = nms2([curCoords; curScores]', PART_NMX_OVERLAP);
         
         % save candidates part into 'CPart' class instances
         curArrayIndex = [];
@@ -121,11 +125,13 @@ for componentIdx = 1:numComponent
             curPyraLevel =  curComponentScores(end, candidateIdx);
             curScale = 2 / ( 2 ^ ( 1 / model.interval ) )^(curPyraLevel-1);            
             numParts = numParts + 1;
-            listCParts(numParts) = CPart(componentIdx, typeIdx, curCoord, curScore, curPyraLevel, curScale);
+            curA2p = model.sbin / curScale;
+            if 1 ~= typeIdx, curA2p = 0.5 * curA2p; end
+            listCParts(numParts) = CPart(componentIdx, typeIdx, curCoord, curScore, curPyraLevel, curScale, curA2p);
             curArrayIndex = [curArrayIndex, numParts];
             
             imageRect = round(curCoord);
-            partMap(imageRect(1):imageRect(3),imageRect(2):imageRect(4)) = 1.0;
+            partMap(imageRect(2):imageRect(4),imageRect(1):imageRect(3)) = 1.0;
         end
         
         % save specific part positions locations in the array of class
@@ -135,14 +141,93 @@ for componentIdx = 1:numComponent
     end
 end
 
+%==========================================
+% HEAD CLUSTERING
+%==========================================
+headIdxSet = [];
+for componentIdx = 1:numComponent
+    headIdxSet = [headIdxSet, cellIndexAmongType{2, componentIdx}];
+end
+numHeads = length(headIdxSet);
+clusterLabels = zeros(1, numHeads);
+
+nextLabel = 1;
+for head1Idx = 1:numHeads
+    curLabel = clusterLabels(head1Idx);
+    if 0 == curLabel
+        curLabel = nextLabel;
+        clusterLabels(head1Idx) = curLabel;
+        nextLabel = nextLabel + 1;
+    end
+    
+    for head2Idx = head1Idx+1:numHeads
+        if curLabel == clusterLabels(head2Idx), continue; end
+        
+        % check adjacency
+        if ~IsNeighbor(listCParts(headIdxSet(head1Idx)), ...
+                listCParts(headIdxSet(head2Idx)), model, CLUSTER_OVERLAP, image)
+            continue;
+        end
+        if 0 == clusterLabels(head2Idx)
+            clusterLabels(head2Idx) = curLabel;
+            continue;
+        end
+        
+        % label update
+        if curLabel < clusterLabels(head2Idx)
+            clusterLabels(clusterLabels == clusterLabels(head2Idx)) = curLabel;
+        else
+            clusterLabels(clusterLabels == curLabel) = clusterLabels(head2Idx);
+            curLabel = clusterLabels(head2Idx);
+        end
+    end
+end
+
+% label refresh
+uniqueLabels = sort(unique(clusterLabels), 'ascend');
+numCluster = length(uniqueLabels);
+for labelIdx = 1:numCluster
+    clusterLabels(clusterLabels == uniqueLabels(labelIdx)) = labelIdx;
+end
+
+% cluster collecting
+cellHeadCluster = cell(1, numCluster);
+for labelIdx = 1:numCluster
+    cellHeadCluster{labelIdx} = headIdxSet(clusterLabels == uniqueLabels(labelIdx));
+end
+
+%==========================================
+% SOLE HEAD PICK
+%==========================================
+clusterSoleHead = false(1, numCluster);
+for clusterIdx = 1:numCluster
+    curHeadIdxs = headIdxSet(uniqueLabels(clusterIdx) == clusterLabels);
+    numCurHeads = length(curHeadIdxs);
+    
+    % heads of same components, or non-overlapped heads -> not sole head cluseter
+    bSoleHead = true;
+    for head1Idx = 1:numCurHeads-1
+        curHead1Idx = headIdxSet(head1Idx);
+        for head2Idx = head1Idx+1:numCurHeads
+            curHead2Idx = headIdxSet(head2Idx);
+            if listCParts(curHead1Idx).component == listCParts(curHead2Idx).component ...
+                || CheckOverlap(listCParts(curHead1Idx).coords, listCParts(curHead2Idx).coords, PART_NMX_OVERLAP)
+                bSoleHead = false;
+                break;
+            end
+        end
+        if ~bSoleHead, break; end
+    end    
+    clusterSoleHead(clusterIdx) = bSoleHead;
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% ASSOCIATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-listDetections = GenerateDetections(listCParts, cellIndexAmongType, model, partMap);
-save detections.mat listDetections;
+% listDetections = GenerateDetections(listCParts, cellIndexAmongType, model, partMap);
+% save detections.mat listDetections;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIMIZATION
@@ -159,19 +244,44 @@ save detections.mat listDetections;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 CDC = CDistinguishableColors();
 
-roots = coords(1:4,:);
-rootRects = roots' / imageScale;
-rootRects(:,3) = rootRects(:,3) - rootRects(:,1) + 1;
-rootRects(:,4) = rootRects(:,4) - rootRects(:,2) + 1;
-figure; imshow(image, 'border', 'tight'); hold on;
-for rectIdx = 1:size(rootRects, 1)
-    rectangle('Position', rootRects(rectIdx,:), 'EdgeColor', GetColor(CDC, 2));
+% roots = coords(1:4,:);
+% rootRects = roots' / imageScale;
+% rootRects(:,3) = rootRects(:,3) - rootRects(:,1) + 1;
+% rootRects(:,4) = rootRects(:,4) - rootRects(:,2) + 1;
+% figure; imshow(image, 'border', 'tight'); hold on;
+% for rectIdx = 1:size(rootRects, 1)
+%     rectangle('Position', rootRects(rectIdx,:), 'EdgeColor', GetColor(CDC, 2));
+% end
+% hold off;
+
+headMap = zeros(imgH, imgW, 3);
+for idx = 1:numHeads
+    curCoords = round(listCParts(headIdxSet(idx)).coords / 2);
+    xRange = curCoords(1):curCoords(3);
+    yRange = curCoords(2):curCoords(4);
+    curColor = GetColor(CDC, clusterLabels(idx));
+    headMap(yRange,xRange,1) = curColor(1);
+    headMap(yRange,xRange,2) = curColor(2);
+    headMap(yRange,xRange,3) = curColor(3);
 end
-hold off;
+figure(1); imshow(headMap, 'border', 'tight');
+
+labelList = zeros(20, 20*numCluster, 3);
+preX = 0;
+for idx = 1:numCluster
+    x = preX+1:preX+20;
+    preX = max(x);
+    curColor = GetColor(CDC, idx);
+    labelList(:,x,1) = curColor(1);
+    labelList(:,x,2) = curColor(2);
+    labelList(:,x,3) = curColor(3);
+end
+figure(2); imshow(labelList, 'border', 'tight');
 
 % for typeIdx = 1:numPartTypes
 %     curListCParts = CPart.empty();
-%     for componentIdx = 1:numComponent
+%     for componentIdx = 2
+% %     for componentIdx = 1:numComponent
 %         curListCParts = [curListCParts, listCParts(cellIndexAmongType{typeIdx,componentIdx})];
 %     end
 %     DrawPart(image, curListCParts, CDC, imageScale, typeIdx);
