@@ -184,11 +184,14 @@ for head1Idx = 1:numHeads
 end
 
 % label refresh
-uniqueLabels = sort(unique(clusterLabels), 'ascend');
+[clusterLabels, sortedIdx] = sort(clusterLabels, 'ascend');
+headIdxSet = headIdxSet(sortedIdx);
+uniqueLabels = unique(clusterLabels);
 numCluster = length(uniqueLabels);
 for labelIdx = 1:numCluster
     clusterLabels(clusterLabels == uniqueLabels(labelIdx)) = labelIdx;
 end
+uniqueLabels = unique(clusterLabels);
 
 % cluster collecting
 cellHeadCluster = cell(1, numCluster);
@@ -211,7 +214,7 @@ for clusterIdx = 1:numCluster
         for head2Idx = head1Idx+1:numCurHeads
             curHead2Idx = headIdxSet(head2Idx);
             if listCParts(curHead1Idx).component == listCParts(curHead2Idx).component ...
-                || CheckOverlap(listCParts(curHead1Idx).coords, listCParts(curHead2Idx).coords, PART_NMX_OVERLAP)
+                || ~CheckOverlap(listCParts(curHead1Idx).coords, listCParts(curHead2Idx).coords, PART_NMX_OVERLAP)
                 bSoleHead = false;
                 break;
             end
