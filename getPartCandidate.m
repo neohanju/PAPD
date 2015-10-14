@@ -79,7 +79,8 @@ addpath(genpath(DPM_path));
 % Get part candidates (root + 8 parts)
 %--------------------------------------------------------------------------
 % Load test image
-im = imread('data/crowd.jpg');
+imageName = 'img4';
+im = imread(fullfile('data', sprintf('%s.jpg', imageName)));
 im = imresize(im, 2);
 % Load DPM model
 load('model\INRIAPERSON_star.mat');
@@ -93,16 +94,31 @@ pyra = featpyramid(double(im), model);
 [sortO, sortI] = sort(model.cascade.order{1}(1:9));
 partscores = partscores([sortI 10],:);
 
+%===========================
 % Show detection results
+%===========================
+% draw head
 dets = coords([1:4 end-1 end],:)';
-I = nms(dets, 0.5);
-figure;
-imshow(im);
-% showboxes(im, dets(I,:));
-showboxes(im, coords(1:end-2,I)');
+over_head = 1;
+over_full = 0.5;
+I = nms2(dets, over_head);
+figure(1);
+imshow(im, 'border', 'tight');
+showboxes(im, coords(5:8,I)');
+title(sprintf('head, nms=%f',over_head));
 
+% draw full body
+figure(2);
+I = nms2(dets, over_full);
+imshow(im, 'border', 'tight');
+% showboxes(im, dets(I,:));
+showboxes(im, coords(1:4,I)');
+title(sprintf('full, nms=%f',over_full));
+
+
+% pause;
 % Save part candidates
-save('data/part_candidates.mat', 'coords', 'partscores');
+save(fullfile('data', sprintf('%s_part_candidates.mat',imageName)), 'coords', 'partscores');
 
 
 
