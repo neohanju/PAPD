@@ -78,6 +78,7 @@ addpath library;
 
 % parameters
 PART_NMX_OVERLAP = 0.3;
+PART_OCC_OVERLAP = 0.8;
 CLUSTER_OVERLAP = 0.1;
 
 % input
@@ -226,11 +227,37 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% ASSOCIATION
+%% GENERATE DETECTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% listDetections = GenerateDetections(listCParts, cellIndexAmongType, model, partMap);
-% save detections.mat listDetections;
+tic;
+%==========================================
+% DETECTIONS FROM EACH CLUSTER
+%==========================================
+cellListDetections = cell(1, numCluster);
+fullBodyConfiguration = ones(1, numPartTypes); fullBodyConfiguration(1) = 0;
+for clusterIdx = 1:numCluster
+    curCellIndexAmongType = cellIndexAmongType;
+    curHeadIdx = cellHeadCluster{clusterIdx};
+    curHeadComponents = [listCParts(curHeadIdx).component];
+    for componentIdx = 1:numComponent
+        curCellIndexAmongType{2,componentIdx} = curHeadIdx(componentIdx == curHeadComponents);
+    end
+    if clusterSoleHead(clusterIdx)
+        cellListDetections{clusterIdx} = GenerateDetections(...
+            listCParts, curCellIndexAmongType, model, partMap, PART_OCC_OVERLAP, fullBodyConfiguration);
+    else
+        cellListDetections{clusterIdx} = GenerateDetections(...
+            listCParts, curCellIndexAmongType, model, partMap, PART_OCC_OVERLAP);    
+    end    
+end
+t_d = toc
+
+tic;
+fprintf('>> saving detections...');
+save('data/detections.mat', 'cellListDetections');
+fprintf('done!!\n');
+t_s = toc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIMIZATION

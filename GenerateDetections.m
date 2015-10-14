@@ -1,27 +1,27 @@
-function [listDetections] = GenerateDetections(listPartInfos, cellIndexAmongType, model, occlusionMap, occlusionOverlapRatio)
+function [listDetections] = GenerateDetections(listPartInfos, ...
+    cellIndexAmongType, model, occlusionMap, occlusionOverlapRatio, ...
+    configurations)
 
+[numPartTypes, numComponents] = size(cellIndexAmongType);
+if nargin < 6
+    %==========================================
+    % CONFIGURATIONS
+    %==========================================
+    % (head 반드시 포함되게 할 것, root는 고려하지 않을 것)
+    configurations = zeros(2^(numPartTypes-2), numPartTypes);
+    for cIdx = 1:size(configurations, 1)
+        flags = ['01', dec2bin(cIdx-1, numPartTypes-2)];                    
+        for typeIdx = 1:numPartTypes
+            configurations(cIdx,typeIdx) = str2double(flags(typeIdx));                        
+        end                    
+    end
+end
 if nargin < 5, occlusionOverlapRatio = 0.8; end
 if nargin < 4
     bOcclusionPrior = false;
     occlusionMap = [];
 else
     bOcclusionPrior = true; 
-end
-
-[numPartTypes, numComponents] = size(cellIndexAmongType);
-numDetection = 0;
-listDetections = CDetection.empty();
-
-%==========================================
-% CONFIGURATIONS
-%==========================================
-% (head 반드시 포함되게 할 것, root는 고려하지 않을 것)
-configurations = zeros(2^(numPartTypes-2), numPartTypes);
-for cIdx = 1:size(configurations, 1)
-    flags = ['01', dec2bin(cIdx-1, numPartTypes-2)];                    
-    for typeIdx = 1:numPartTypes
-        configurations(cIdx,typeIdx) = str2double(flags(typeIdx));                        
-    end                    
 end
 
 %==========================================
@@ -73,10 +73,6 @@ for componentIdx = 1:numComponents
                     % save combination for propagation
                     newCombinationIdx = newCombinationIdx + 1;
                     newCombinations(newCombinationIdx,:) = newCombination;
-                    
-                    % save combination as a detection
-                    numDetection = numDetection + 1;
-                    listDetections(numDetection) = CDetection(curCombination, curListPartInfo, 0.0);
                 end
             end                    
             combinationsInCurConfiguration = newCombinations(1:newCombinationIdx, :);
@@ -84,7 +80,18 @@ for componentIdx = 1:numComponents
         fprintf('%d sets are made\n', size(combinationsInCurConfiguration, 1));
         combinations = [combinations; combinationsInCurConfiguration];
     end
+end
 
+%==========================================
+% COMBINATIONS -> DETECTIONS
+%==========================================
+listDetections = CDetection.empty();
+numCombinations = size(combinations, 1);
+fprintf('>> total %d sets are made\n', numCombinations);
+for cIdx = 1:numCombinations
+    curCombination = combinations(cIdx,:);    
+    curListPartInfo = listPartInfos(curCombination(0 ~= curCombination));
+    listDetections(cIdx) = CDetection(curCombination, curListPartInfo, 0.0);
 end
 
 end
