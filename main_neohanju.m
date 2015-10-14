@@ -76,8 +76,11 @@ addpath library;
 %% PARAMETER AND PRESET, INPUT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% mode
+DO_BATCH_GEN_DETECTIONS = true;
+
 % parameters
-PART_NMX_OVERLAP = 0.5;
+PART_NMX_OVERLAP = 0.3;
 PART_OCC_OVERLAP = 0.8;
 CLUSTER_OVERLAP = 0.1;
 
@@ -146,124 +149,51 @@ end
 %==========================================
 % HEAD CLUSTERING
 %==========================================
-headIdxSet = [];
-for componentIdx = 1:numComponent
-    headIdxSet = [headIdxSet, cellIndexAmongType{2, componentIdx}];
-end
+[cellHeadCluster, listSoleHeadCluster, headIdxSet] = HeadClustering(...
+    listCParts, cellIndexAmongType, model, CLUSTER_OVERLAP, PART_NMX_OVERLAP);
 numHeads = length(headIdxSet);
-clusterLabels = zeros(1, numHeads);
-
-nextLabel = 1;
-for head1Idx = 1:numHeads
-    curLabel = clusterLabels(head1Idx);
-    if 0 == curLabel
-        curLabel = nextLabel;
-        clusterLabels(head1Idx) = curLabel;
-        nextLabel = nextLabel + 1;
-    end
-    
-    for head2Idx = head1Idx+1:numHeads
-        if curLabel == clusterLabels(head2Idx), continue; end
-        
-        % check adjacency
-        if ~IsNeighbor(listCParts(headIdxSet(head1Idx)), ...
-                listCParts(headIdxSet(head2Idx)), model, CLUSTER_OVERLAP, image)
-            continue;
-        end
-        if 0 == clusterLabels(head2Idx)
-            clusterLabels(head2Idx) = curLabel;
-            continue;
-        end
-        
-        % label update
-        if curLabel < clusterLabels(head2Idx)
-            clusterLabels(clusterLabels == clusterLabels(head2Idx)) = curLabel;
-        else
-            clusterLabels(clusterLabels == curLabel) = clusterLabels(head2Idx);
-            curLabel = clusterLabels(head2Idx);
-        end
-    end
-end
-
-% label refresh
-[clusterLabels, sortedIdx] = sort(clusterLabels, 'ascend');
-headIdxSet = headIdxSet(sortedIdx);
-uniqueLabels = unique(clusterLabels);
-numCluster = length(uniqueLabels);
-for labelIdx = 1:numCluster
-    clusterLabels(clusterLabels == uniqueLabels(labelIdx)) = labelIdx;
-end
-uniqueLabels = unique(clusterLabels);
-
-% cluster collecting
-cellHeadCluster = cell(1, numCluster);
-for labelIdx = 1:numCluster
-    cellHeadCluster{labelIdx} = headIdxSet(clusterLabels == uniqueLabels(labelIdx));
-end
-
-%==========================================
-% SOLE HEAD PICK
-%==========================================
-clusterSoleHead = false(1, numCluster);
-for clusterIdx = 1:numCluster
-    curHeadIdxs = headIdxSet(uniqueLabels(clusterIdx) == clusterLabels);
-    numCurHeads = length(curHeadIdxs);
-    
-    % heads of same components, or non-overlapped heads -> not sole head cluseter
-    bSoleHead = true;
-    for head1Idx = 1:numCurHeads-1
-        curHead1Idx = headIdxSet(head1Idx);
-        for head2Idx = head1Idx+1:numCurHeads
-            curHead2Idx = headIdxSet(head2Idx);
-            if listCParts(curHead1Idx).component == listCParts(curHead2Idx).component ...
-                || ~CheckOverlap(listCParts(curHead1Idx).coords, listCParts(curHead2Idx).coords, PART_NMX_OVERLAP)
-                bSoleHead = false;
-                break;
-            end
-        end
-        if ~bSoleHead, break; end
-    end    
-    clusterSoleHead(clusterIdx) = bSoleHead;
-end
-
+numCluster = length(cellHeadCluster);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% GENERATE DETECTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% curCellIdx = 2;
-
-tic;
-%==========================================
-% DETECTIONS FROM EACH CLUSTER
-%==========================================
-cellListDetections = cell(1, numCluster);
-fullBodyConfiguration = ones(1, numPartTypes); fullBodyConfiguration(1) = 0;
-% for clusterIdx = curCellIdx:curCellIdx
-for clusterIdx = 1:numCluster
-    curCellIndexAmongType = cellIndexAmongType;
-    curHeadIdx = cellHeadCluster{clusterIdx};
-    curHeadComponents = [listCParts(curHeadIdx).component];
-    for componentIdx = 1:numComponent
-        curCellIndexAmongType{2,componentIdx} = curHeadIdx(componentIdx == curHeadComponents);
+if DO_BATCH_GEN_DETECTIONS
+    load(['data/' INPUT_FILE_NAME '_detections.mat']);
+else
+    tic;
+    %==========================================
+    % DETECTIONS FROM EACH CLUSTER
+    %==========================================
+    cellListDetections = cell(1, numCluster);
+    fullBodyConfiguration = ones(1, numPartTypes); fullBodyConfiguration(1) = 0;
+    for clusterIdx = 1:numCluster
+        curCellIndexAmongType = cellIndexAmongType;
+        curHeadIdx = cellHeadCluster{clusterIdx};
+        curHeadComponents = [listCParts(curHeadIdx).component];
+        for componentIdx = 1:numComponent
+            curCellIndexAmongType{2,componentIdx} = curHeadIdx(componentIdx == curHeadComponents);
+        end
+        if listSoleHeadCluster(clusterIdx)
+            cellListDetections{clusterIdx} = GenerateDetections(...
+                listCParts, curCellIndexAmongType, model, partMap, PART_OCC_OVERLAP, fullBodyConfiguration);
+        else
+            cellListDetections{clusterIdx} = GenerateDetections(...
+                listCParts, curCellIndexAmongType, model, partMap, PART_OCC_OVERLAP);    
+        end    
     end
-    if clusterSoleHead(clusterIdx)
-        cellListDetections{clusterIdx} = GenerateDetections(...
-            listCParts, curCellIndexAmongType, model, partMap, PART_OCC_OVERLAP, fullBodyConfiguration);
-    else
-        cellListDetections{clusterIdx} = GenerateDetections(...
-            listCParts, curCellIndexAmongType, model, partMap, PART_OCC_OVERLAP);    
-    end    
-end
-t_d = toc;
-fprintf(['>> elapsed time for generating detections: ' datestr(datenum(0,0,0,0,0,t_d),'HH:MM:SS') '\n']);
+    t_d = toc;
+    fprintf(['>> elapsed time for generating detections: ' datestr(datenum(0,0,0,0,0,t_d),'HH:MM:SS') '\n']);
 
-tic;
-fprintf('>> saving detections...');
-save('data/detections.mat', '-v6', 'cellListDetections', 'listCParts');
-fprintf('done!!\n');
-t_s = toc;
-fprintf(['>> elapsed time for generating detections: ' datestr(datenum(0,0,0,0,0,t_s),'HH:MM:SS') '\n']);
+    tic;
+    fprintf('>> saving detections...');
+    save(['data/' INPUT_FILE_NAME '_detections.mat'], '-v6', ...
+        'cellListDetections', 'listCParts', 'cellIndexAmongType', ...
+        'cellHeadCluster', 'listSoleHeadCluster', 'headIdxSet');
+    fprintf('done!!\n');
+    t_s = toc;
+    fprintf(['>> elapsed time for generating detections: ' datestr(datenum(0,0,0,0,0,t_s),'HH:MM:SS') '\n']);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIMIZATION
@@ -309,15 +239,27 @@ end
 %==========================================
 % draw head clustering result
 headMap = zeros(imgH, imgW, 3);
-for idx = 1:numHeads
-    curCoords = round(listCParts(headIdxSet(idx)).coords / 2);
-    xRange = curCoords(1):curCoords(3);
-    yRange = curCoords(2):curCoords(4);
-    curColor = GetColor(CDC, clusterLabels(idx));
-    headMap(yRange,xRange,1) = curColor(1);
-    headMap(yRange,xRange,2) = curColor(2);
-    headMap(yRange,xRange,3) = curColor(3);
+for clusterIdx = 1:numCluster
+    curHeads = cellHeadCluster{clusterIdx};
+    for headIdx = 1:length(curHeads)
+        curCoords = round(listCParts(curHeads(headIdx)).coords / 2);
+        xRange = curCoords(1):curCoords(3);
+        yRange = curCoords(2):curCoords(4);
+        curColor = GetColor(CDC, clusterIdx);
+        headMap(yRange,xRange,1) = curColor(1);
+        headMap(yRange,xRange,2) = curColor(2);
+        headMap(yRange,xRange,3) = curColor(3);
+    end
 end
+% for idx = 1:numHeads
+%     curCoords = round(listCParts(headIdxSet(idx)).coords / 2);
+%     xRange = curCoords(1):curCoords(3);
+%     yRange = curCoords(2):curCoords(4);
+%     curColor = GetColor(CDC, clusterLabels(idx));
+%     headMap(yRange,xRange,1) = curColor(1);
+%     headMap(yRange,xRange,2) = curColor(2);
+%     headMap(yRange,xRange,3) = curColor(3);
+% end
 figure(100); imshow(headMap, 'border', 'tight');
 
 % draw cluster label colors
