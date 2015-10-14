@@ -91,7 +91,8 @@ fprintf('>> total %d sets are made\n', numCombinations);
 for cIdx = 1:numCombinations
     curCombination = combinations(cIdx,:);    
     curListPartInfo = listPartInfos(curCombination(0 ~= curCombination));
-    listDetections(cIdx) = CDetection(curCombination, curListPartInfo, 0.0);
+    curScore = sum([curListPartInfo.score]);
+    listDetections(cIdx) = CDetection(curCombination, curScore);
 end
 
 end

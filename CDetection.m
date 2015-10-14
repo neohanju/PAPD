@@ -1,14 +1,12 @@
 classdef CDetection
     properties
-        combination
-        partInfos
+        combination        
         score        
     end
     methods
-        function CV = CDetection(combination, listPartInfo, score)
-            CV.combination = combination;
-            CV.partInfos = listPartInfo;
-            CV.score = score;            
+        function CV = CDetection(combination, score)
+            CV.combination = combination;            
+            CV.score = score;
         end
     end
 end

@@ -77,12 +77,13 @@ addpath library;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % parameters
-PART_NMX_OVERLAP = 0.3;
+PART_NMX_OVERLAP = 0.5;
 PART_OCC_OVERLAP = 0.8;
 CLUSTER_OVERLAP = 0.1;
 
 % input
-image = imread('data/frame_0062.jpg');
+INPUT_FILE_NAME = 'img5';
+image = imread(['data/' INPUT_FILE_NAME '.jpg']);
 [imgH, imgW, imgC] = size(image);
 imageScale = 2.0;
 
@@ -90,7 +91,7 @@ imageScale = 2.0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PART RESPONSE AND PRE-PROCESSING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-load data/part_candidates.mat;
+load(['data/' INPUT_FILE_NAME '_part_candidates.mat']);
 load model/INRIAPERSON_star.mat; % Load DPM model
 numComponent = length(unique(coords(end-1,:)));
 [numPartTypes, numDetections] = size(partscores);
@@ -230,12 +231,15 @@ end
 %% GENERATE DETECTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% curCellIdx = 2;
+
 tic;
 %==========================================
 % DETECTIONS FROM EACH CLUSTER
 %==========================================
 cellListDetections = cell(1, numCluster);
 fullBodyConfiguration = ones(1, numPartTypes); fullBodyConfiguration(1) = 0;
+% for clusterIdx = curCellIdx:curCellIdx
 for clusterIdx = 1:numCluster
     curCellIndexAmongType = cellIndexAmongType;
     curHeadIdx = cellHeadCluster{clusterIdx};
@@ -251,13 +255,15 @@ for clusterIdx = 1:numCluster
             listCParts, curCellIndexAmongType, model, partMap, PART_OCC_OVERLAP);    
     end    
 end
-t_d = toc
+t_d = toc;
+fprintf(['>> elapsed time for generating detections: ' datestr(datenum(0,0,0,0,0,t_d),'HH:MM:SS') '\n']);
 
 tic;
 fprintf('>> saving detections...');
-save('data/detections.mat', 'cellListDetections');
+save('data/detections.mat', '-v6', 'cellListDetections', 'listCParts');
 fprintf('done!!\n');
-t_s = toc
+t_s = toc;
+fprintf(['>> elapsed time for generating detections: ' datestr(datenum(0,0,0,0,0,t_s),'HH:MM:SS') '\n']);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIMIZATION
@@ -274,16 +280,34 @@ t_s = toc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 CDC = CDistinguishableColors();
 
-% roots = coords(1:4,:);
-% rootRects = roots' / imageScale;
-% rootRects(:,3) = rootRects(:,3) - rootRects(:,1) + 1;
-% rootRects(:,4) = rootRects(:,4) - rootRects(:,2) + 1;
-% figure; imshow(image, 'border', 'tight'); hold on;
-% for rectIdx = 1:size(rootRects, 1)
-%     rectangle('Position', rootRects(rectIdx,:), 'EdgeColor', GetColor(CDC, 2));
-% end
-% hold off;
+%==========================================
+% PART NMS DRAWING
+%==========================================
+% draw roots (before nms)
+roots = coords(1:4,:);
+rootRects = roots' / imageScale;
+rootRects(:,3) = rootRects(:,3) - rootRects(:,1) + 1;
+rootRects(:,4) = rootRects(:,4) - rootRects(:,2) + 1;
+figure(1000); imshow(image, 'border', 'tight'); hold on;
+for rectIdx = 1:size(rootRects, 1)
+    rectangle('Position', rootRects(rectIdx,:), 'EdgeColor', GetColor(CDC, 2));
+end
+hold off;
 
+% draw each parts
+for typeIdx = 1:2
+% for typeIdx = 1:numPartTypes
+    curListCParts = CPart.empty();
+    for componentIdx = 1:numComponent
+        curListCParts = [curListCParts, listCParts(cellIndexAmongType{typeIdx,componentIdx})];
+    end
+    DrawPart(image, curListCParts, CDC, imageScale, typeIdx);
+end
+
+%==========================================
+% HEAD CLUSTERING
+%==========================================
+% draw head clustering result
 headMap = zeros(imgH, imgW, 3);
 for idx = 1:numHeads
     curCoords = round(listCParts(headIdxSet(idx)).coords / 2);
@@ -294,8 +318,9 @@ for idx = 1:numHeads
     headMap(yRange,xRange,2) = curColor(2);
     headMap(yRange,xRange,3) = curColor(3);
 end
-figure(1); imshow(headMap, 'border', 'tight');
+figure(100); imshow(headMap, 'border', 'tight');
 
+% draw cluster label colors
 labelList = zeros(20, 20*numCluster, 3);
 preX = 0;
 for idx = 1:numCluster
@@ -306,32 +331,20 @@ for idx = 1:numCluster
     labelList(:,x,2) = curColor(2);
     labelList(:,x,3) = curColor(3);
 end
-figure(2); imshow(labelList, 'border', 'tight');
+figure(200); imshow(labelList, 'border', 'tight');
 
-% for typeIdx = 1:numPartTypes
-%     curListCParts = CPart.empty();
-%     for componentIdx = 2
-% %     for componentIdx = 1:numComponent
-%         curListCParts = [curListCParts, listCParts(cellIndexAmongType{typeIdx,componentIdx})];
-%     end
-%     DrawPart(image, curListCParts, CDC, imageScale, typeIdx);
-% end
-
-% numPartsInCombination = zeros(size(combinations, 1), 1);
-% for combIdx = 1:size(combinations,1)
-%     curCombination = combinations(combIdx,:);
-%     numPartsInCombination(combIdx) = numel(curCombination(curCombination ~= 0));
-% end
-% 
-% fullPartCombination = combinations(8 == numPartsInCombination,:);
-% % draw all parts of the combination results 
-% figure(100);
+% %==========================================
+% % FULL-BODY COMBINATIONS
+% %==========================================
+% % draw full-body combinations (each part)
+% figure(98);
 % imshow(image, 'border', 'tight');
 % hold on;
 % BBs = [];
-% for combIdx = 1:size(fullPartCombination,1)
-%     curCombination = fullPartCombination(combIdx,:);
+% for combIdx = 1:size(cellListDetections{curCellIdx},2)
+%     curCombination = cellListDetections{curCellIdx}(combIdx).combination;
 %     curPartBoxes = [];
+%     if length(nonzeros(curCombination)) < 8, continue; end;
 %     for typeIdx = 2:9
 %         curBox = GetBox(listCParts(curCombination(typeIdx))) / imageScale;
 %         rectangle('Position', curBox, 'EdgeColor', GetColor(CDC, typeIdx));
@@ -347,11 +360,12 @@ figure(2); imshow(labelList, 'border', 'tight');
 %     BBs = [BBs; BB]; 
 % end
 % hold off;
-% % draw bounding boxes of the combination results
-% figure(101);
+% 
+% % draw full-body combinations (bounding box)
+% figure(99);
 % imshow(image, 'border', 'tight');
 % hold on;
-% for combIdx = 1:size(fullPartCombination,1)
+% for combIdx = 1:size(BBs,1)    
 %     rectangle('Position', BBs(combIdx,:), 'EdgeColor', GetColor(CDC, 10));
 % end
 % hold off;
