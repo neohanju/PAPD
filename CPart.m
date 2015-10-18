@@ -21,14 +21,26 @@ classdef CPart
             CP.a2p = a2p;
         end
         function box = GetBox(CP)
-            x = CP.coords(1);
-            y = CP.coords(2);
-            w = CP.coords(3) - CP.coords(1) + 1;
-            h = CP.coords(4) - CP.coords(2) + 1;
-            box = [x, y, w, h];
+            box = Coords2Rect(CP.coords);
         end
-        function resultFlag = IsAssociable(CP1, CP2, model)
-            resultFlag = false;
+        function coords = EstimatePartCoords(basisPart, targetPartType, targetComponent, model)
+            % find location of the target part
+            anchorBasis = [0, 0];
+            if 1 ~= basisPart.type
+                anchorBasis = model.defs{basisPart.type-1+(basisPart.component-1)*8}.anchor;
+            end
+            anchorPart = model.defs{targetPartType-1+(targetComponent-1)*8}.anchor;
+            vecAnchorDiff = anchorPart - anchorBasis;
+            partLocation = basisPart.coords(1:2) + basisPart.a2p * vecAnchorDiff;
+            
+            % target part size in anchor domain (w=6/h=6)
+            partSize = basisPart.a2p * 6;
+            
+            % estimated part position
+            coords = [partLocation, partLocation + [partSize, partSize]];
+        end
+        function bAssociable = IsAssociable(CP1, CP2, model)
+            bAssociable = false;
             if CP1.type == CP2.type || CP1.component ~= CP2.component, return; end
             
             % relative distance between two parts ('s anchors)
@@ -49,9 +61,9 @@ classdef CPart
             yThre = 9;
             if displacement(1) > xThre || displacement(2) > yThre, return; end;
             
-            resultFlag = true;
+            bAssociable = true;
         end
-        function bNeighbor = IsNeighbor(CP1, CP2, model, overlapRatio, image)
+        function bNeighbor = IsNeighbor(CP1, CP2, model, overlapRatio)
             bNeighbor = false;
             rootSize = model.rootfilters{1}.size(end:-1:1) * 2; % {1} for component 1, and x2 to match the resolution with parts
             root1Pos = [CP1.coords(1), CP1.coords(2)] - CP1.a2p * model.defs{CP1.type-1+(CP1.component-1)*8}.anchor;
@@ -70,6 +82,9 @@ classdef CPart
 %             rectangle('Position', [root2Rect(1),root2Rect(2),root2Size(1),root2Size(2)]/2, 'EdgeColor', [0, 1, 0]);
             
             if CheckOverlap(root1Coords, root2Coords, overlapRatio), bNeighbor = true; end
+        end
+        function bCompatible = IsCompatible(CP1, CP2, partOverlapRatio)
+            bCompatible = ~CheckOverlap(CP1.coords, CP2.coords, partOverlapRatio);
         end
     end
 end

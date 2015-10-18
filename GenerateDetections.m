@@ -47,22 +47,20 @@ for componentIdx = 1:numComponents
 
             for combIdx = 1:size(combinationsInCurConfiguration, 1)
                 curCombination = combinationsInCurConfiguration(combIdx,:);
-
-                for partIdx = cellIndexAmongType{typeIdx,componentIdx} 
-                    
-                    % check compatibility between parts
-                    bIsCompatible = true;
+                for partIdx = cellIndexAmongType{typeIdx,componentIdx}
+                    % check associability between inserted and candidate parts
+                    bAssociable = true;
                     for preInsertedPartIdx = curCombination                                    
                         if 0 == preInsertedPartIdx, continue; end
-                        bIsCompatible = IsAssociable(...
+                        bAssociable = IsAssociable(...
                             listPartInfos(preInsertedPartIdx), listPartInfos(partIdx), model);
-                        if ~bIsCompatible, break; end
+                        if ~bAssociable, break; end
                     end                                
-                    if ~bIsCompatible, continue; end                    
-                    newCombination = curCombination;
-                    newCombination(typeIdx) = partIdx;
+                    if ~bAssociable, continue; end
                     
                     % check occlusion prior
+                    newCombination = curCombination;
+                    newCombination(typeIdx) = partIdx;
                     curListPartInfoIdx = newCombination(0 ~= newCombination);
                     curListPartInfo = listPartInfos(curListPartInfoIdx);
                     if bOcclusionPrior && ~CheckPartOcclusion(...

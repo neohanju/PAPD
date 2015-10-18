@@ -71,6 +71,7 @@
 
 dbstop if error
 addpath library;
+addpath c:/gurobi605/win64/matlab % for Gurobi solver
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER AND PRESET, INPUT
@@ -80,25 +81,28 @@ addpath library;
 DO_BATCH_GEN_DETECTIONS = true;
 
 % parameters
-PART_NMX_OVERLAP = 0.3;
+PART_NMS_OVERLAP = 0.3;
 PART_OCC_OVERLAP = 0.8;
 CLUSTER_OVERLAP = 0.1;
 
-% input
+% load input frame
 INPUT_FILE_NAME = 'img5';
 image = imread(['data/' INPUT_FILE_NAME '.jpg']);
 [imgH, imgW, imgC] = size(image);
 imageScale = 2.0;
 
+% load deformable part model
+load model/INRIAPERSON_star.mat;
+
+% load part detection results
+load(['data/' INPUT_FILE_NAME '_part_candidates.mat']);
+numComponent = length(unique(coords(end-1,:)));
+[numPartTypes, numDetections] = size(partscores);
+numPartTypes = numPartTypes - 1; % since the last row of partscores is "pyramidLevel"
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PART RESPONSE AND PRE-PROCESSING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-load(['data/' INPUT_FILE_NAME '_part_candidates.mat']);
-load model/INRIAPERSON_star.mat; % Load DPM model
-numComponent = length(unique(coords(end-1,:)));
-[numPartTypes, numDetections] = size(partscores);
-numPartTypes = numPartTypes - 1; % since the last row of partscores is "pyramidLevel"
 
 %==========================================
 % NON-MAXIMAL SUPPRESSION WITH EACH PART
@@ -120,7 +124,7 @@ for componentIdx = 1:numComponent
         % non-maximal suppression
         curCoords = curComponents(typeOffset:typeOffset+3,:);
         curScores = curComponentScores(typeIdx,:);
-        pickedIdx = nms2([curCoords; curScores]', PART_NMX_OVERLAP);
+        pickedIdx = nms2([curCoords; curScores]', PART_NMS_OVERLAP);
         
         % save candidates part into 'CPart' class instances
         curArrayIndex = [];
@@ -132,7 +136,8 @@ for componentIdx = 1:numComponent
             numParts = numParts + 1;
             curA2p = model.sbin / curScale;
             if 1 ~= typeIdx, curA2p = 0.5 * curA2p; end
-            listCParts(numParts) = CPart(componentIdx, typeIdx, curCoord, curScore, curPyraLevel, curScale, curA2p);
+            listCParts(numParts) = ...
+                CPart(componentIdx, typeIdx, curCoord, curScore, curPyraLevel, curScale, curA2p);
             curArrayIndex = [curArrayIndex, numParts];
             
             imageRect = round(curCoord);
@@ -150,7 +155,7 @@ end
 % HEAD CLUSTERING
 %==========================================
 [cellHeadCluster, listSoleHeadCluster, headIdxSet] = HeadClustering(...
-    listCParts, cellIndexAmongType, model, CLUSTER_OVERLAP, PART_NMX_OVERLAP);
+    listCParts, cellIndexAmongType, model, CLUSTER_OVERLAP, PART_NMS_OVERLAP);
 numHeads = length(headIdxSet);
 numCluster = length(cellHeadCluster);
 
@@ -176,14 +181,16 @@ else
         end
         if listSoleHeadCluster(clusterIdx)
             cellListDetections{clusterIdx} = GenerateDetections(...
-                listCParts, curCellIndexAmongType, model, partMap, PART_OCC_OVERLAP, fullBodyConfiguration);
+                listCParts, curCellIndexAmongType, model, partMap, PART_OCC_OVERLAP, ...
+                fullBodyConfiguration);
         else
             cellListDetections{clusterIdx} = GenerateDetections(...
                 listCParts, curCellIndexAmongType, model, partMap, PART_OCC_OVERLAP);    
         end    
     end
     t_d = toc;
-    fprintf(['>> elapsed time for generating detections: ' datestr(datenum(0,0,0,0,0,t_d),'HH:MM:SS') '\n']);
+    fprintf(['>> elapsed time for generating detections: ' ...
+        datestr(datenum(0,0,0,0,0,t_d),'HH:MM:SS') '\n']);
 
     tic;
     fprintf('>> saving detections...');
@@ -192,13 +199,20 @@ else
         'cellHeadCluster', 'listSoleHeadCluster', 'headIdxSet');
     fprintf('done!!\n');
     t_s = toc;
-    fprintf(['>> elapsed time for generating detections: ' datestr(datenum(0,0,0,0,0,t_s),'HH:MM:SS') '\n']);
+    fprintf(['>> elapsed time for generating detections: ' ...
+        datestr(datenum(0,0,0,0,0,t_s),'HH:MM:SS') '\n']);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIMIZATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % solve MWCP with the graph
+cellSolutions = cell(numCluster, 2); % {detection list}{objective value}
+for clusterIdx = 1:numCluster
+    cellSolutions(clusterIdx,:) = ...
+        Optimization_Gurobi(cellListDetections{clusterIdx}, listCParts, model, ...
+        PART_NMS_OVERLAP, PART_OCC_OVERLAP);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% REFINEMENT

@@ -38,7 +38,7 @@ for head1Idx = 1:numHeads
         
         % check adjacency
         if ~IsNeighbor(listCParts(headIdxSet(head1Idx)), ...
-                listCParts(headIdxSet(head2Idx)), model, clusterOverlapRatio, image)
+                listCParts(headIdxSet(head2Idx)), model, clusterOverlapRatio)
             continue;
         end
         if 0 == clusterLabels(head2Idx)
