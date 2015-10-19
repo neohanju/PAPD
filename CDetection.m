@@ -79,12 +79,12 @@ classdef CDetection
             else
                 figure(figID);
             end
+            if 0 ~= image, imshow(image, 'border', 'tight'); end
             if nargin < 4, rescale = 1.0; end
-            imshow(image, 'border', 'tight');
             hold on;
             for pIdx = CD.combination(0 < CD.combination)
                 curColor = [1, 1, 1];
-                if 1 == listCPart(pIdx).type, curColor = [1, 0, 0]; end
+                if 2 == listCPart(pIdx).type, curColor = [1, 0, 0]; end
                 rectangle('Position', rescale*Coords2Rect(listCPart(pIdx).coords), 'EdgeColor', curColor);
             end
             hold off;

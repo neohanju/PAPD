@@ -207,11 +207,16 @@ end
 %% OPTIMIZATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % solve MWCP with the graph
+figure(12321); imshow(image, 'border', 'tight');
 cellSolutions = cell(numCluster, 2); % {detection list}{objective value}
-for clusterIdx = 1:numCluster
+% for clusterIdx = 1:numCluster
+for clusterIdx = 8
     cellSolutions(clusterIdx,:) = ...
         Optimization_Gurobi(cellListDetections{clusterIdx}, listCParts, model, ...
         PART_NMS_OVERLAP, PART_OCC_OVERLAP);
+    for dIdx = 1:length(cellSolutions{clusterIdx,1})
+        ShowDetection(cellSolutions{clusterIdx,1}(dIdx), listCParts, 0, 0.5, 12321);
+    end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -218,8 +218,12 @@ pip-log.txt
 #############
 
 # Common
-.asv
+*.asv
+
+#############
+## GUROBI
+#############
+*.lp
 
 #()()
 #('')HAANJU.YOO
-*.asv
