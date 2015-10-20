@@ -18,7 +18,7 @@ for dIdx = 1:numVariables
 end
 fprintf('done!!\n');
 
-try
+% try
     %==========================================
     % PAIRWISE CHECK
     %==========================================
@@ -68,6 +68,11 @@ try
         scores = [scorePairwise(:,3); scorePairwise(:,3)];
         rowIndices = [scorePairwise(:,1); scorePairwise(:,2)];
         colIndices = [scorePairwise(:,2); scorePairwise(:,1)];
+        if max(rowIndices) < numVariables || max(colIndices) < numVariables
+            rowIndices(end+1) = numVariables;
+            colIndices(end+1) = numVariables;
+            scores(end+1) = 0.0;
+        end
         grb_model.Q = sparse(rowIndices, colIndices, scores);
     end
     grb_model.obj = scoreUnary;
@@ -114,8 +119,8 @@ try
         numDetectionInSolution = numDetectionInSolution + 1;
         solution{1}(numDetectionInSolution) = detections(v);
     end
-catch gurobiError
-    fprintf('Error reported\n');
-end
+% catch gurobiError
+%     fprintf('Error reported\n');
+% end
 
 end

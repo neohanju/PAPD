@@ -9,17 +9,21 @@ classdef CPart
         pyramidLevel
         scale
         a2p % anchor scale to pixel scale
+        rootID
     end
     methods
-        function CP = CPart(component, type, coords, score, pyramidLevel, scale, a2p)
+        function CP = CPart(component, type, coords, score, pyramidLevel, scale, a2p, rootID)
             CP.component = component;
             CP.type = type;
             CP.coords = coords;
             CP.score = score;
             CP.pyramidLevel = pyramidLevel;
             CP.scale = scale;
-            CP.a2p = a2p;
-        end
+            CP.a2p = a2p;                       
+            if nargin == 8
+                CP.rootID = rootID;
+            end
+        end        
         function box = GetBox(CP)
             box = Coords2Rect(CP.coords);
         end
