@@ -107,7 +107,7 @@ numPartTypes = numPartTypes - 1; % since the last row of partscores is "pyramidL
 %==========================================
 % MAKE LISTCPARTS
 %==========================================
-fprintf('Make part list..\n');
+fprintf('Make part list..');
 numParts = 0;
 listCParts = CPart.empty();
 cellIndexAmongType = cell(numPartTypes, numComponent); % array positions of a specific part and component
@@ -152,6 +152,7 @@ for componentIdx = 1:numComponent
         typeOffset = typeOffset + 4;
     end
 end
+fprintf('done!\n');
 
 %==========================================
 % NON MAXIMAL SUPPRESSION WITH HEAD PART
@@ -186,12 +187,12 @@ for componentIdx = 1:numComponent
     headIdxSet = [headIdxSet, curHeadCellIndex(0~=isPicked)];
 end
 
-fprintf('Head clustering..\n');
+fprintf('Head clustering..');
 [cellHeadCluster, listSoleHeadCluster] = HeadClusteringNMS(...
     headIdxSet, listCParts, model, CLUSTER_OVERLAP, PART_NMS_OVERLAP);
 numHeads = length(headIdxSet);
 numCluster = length(cellHeadCluster);
-
+fprintf('done!\n');
 %----------------------------
 % Not used any longer...
 %----------------------------
@@ -215,6 +216,7 @@ numCluster = length(cellHeadCluster);
 if DO_BATCH_GEN_DETECTIONS
     load(['data/' INPUT_FILE_NAME '_detections_using_root.mat']);
 else
+    fprintf('Generate Detections..\n');
     tic;
     %==========================================
     % DETECTIONS FROM EACH CLUSTER
@@ -240,7 +242,7 @@ else
         end
         
         % generate Combinations and Detections
-        fprintf('Cluster: %d/%d\n', clusterIdx, numCluster);
+        fprintf('Cluster (%2d/%2d): ', clusterIdx, numCluster);
         cellListDetections{clusterIdx} = ...
             GenerateDetectionsFromFullParts(listCParts, partsInCluster, ...
             numPartTypes);
@@ -261,8 +263,39 @@ else
 end
 
 
+%===========================================================
+% RE-SCORING THE DETECTION WITH NORMALIZATION (-0.5 ~ 0.5)
+%===========================================================
+load(fullfile('model', 'ConfigurationScoreStats.mat'));
+norm = norm{1};
+scores = [];
 
+% Run normalization
+fprintf('Normalize the detection scores..');
+for i = 1 : length(cellListDetections)        
+    for j = 1 : length(cellListDetections{i})
+        det = cellListDetections{i}(j);        
+        % find det's configuration
+        conf = zeros(size(det.combination));
+        conf((0~=det.combination)) = 1;
+        confStr = [];
+        for k = 1 : length(conf)
+            confStr = [confStr, num2str(conf(k))];
+        end
+        confStr(1:2) = []; % remove root and head flag (always 0 and 1)
+        confVal = bin2dec(confStr)+1;
+        
+        maxVal = norm(confVal).max;
+        minVal = norm(confVal).min;
+        
+        newScore = (det.score - minVal) / ( maxVal - minVal) - 0.5 ;
+        cellListDetections{i}(j).score = newScore;
+    end    
+    scores = [scores, cellListDetections{i}.score];
 
+end
+fprintf('done!\n');
+hist(scores);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
