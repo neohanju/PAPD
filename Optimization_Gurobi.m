@@ -9,7 +9,10 @@ numPartTypes = floor(length(model.partfilters) / model.numcomponents);
 %==========================================
 % UNARI SCORES
 %==========================================
-fprintf('>> construct unary scorses...');
+fprintf('¦®---------------------------------------------------------¦¯');
+fprintf('¦­                     GRAPH SOLVING                       ¦­');
+fprintf('¦±---------------------------------------------------------¦°');
+fprintf('construct unary scorses...');
 scoreUnary = [detections.score];
 defaultVisiblePartScore = 0.5 - (numPartTypes - 1); % exclude root
 for dIdx = 1:numVariables
