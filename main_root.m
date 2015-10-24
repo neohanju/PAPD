@@ -270,15 +270,33 @@ hist(scores);
 % solve MWCP with the graph
 figure(12321); imshow(image, 'border', 'tight');
 cellSolutions = cell(numCluster, 2); % {detection list}{objective value}
-% for clusterIdx = 1:numCluster
-for clusterIdx = 8
-    cellSolutions(clusterIdx,:) = ...
-        Optimization_Gurobi(cellListDetections{clusterIdx}, listCParts, model, ...
-        PART_NMS_OVERLAP, PART_OCC_OVERLAP);
+for clusterIdx = 1:numCluster
+% for clusterIdx = 8
+    fprintf('==========SOLVING CLUSTER %03d==========\n', clusterIdx);
+    if listSingleHeadCluster(clusterIdx)
+        % find and save only the combination which has the maximum score
+        maxScore = 0.0;
+        maxIdx = 0;
+        for cIdx = 1:size(cellListDetections{clusterIdx}, 1)            
+            if cellListDetections{clusterIdx}(cIdx).score < maxScore
+                continue;
+            end
+            maxScore = cellListDetections{clusterIdx}(cIdx).score;
+            maxIdx = cIdx;        
+        end
+        if 0 < maxIdx
+            cellSolutions{clusterIdx,1} = cellListDetections{clusterIdx}(maxIdx);
+            cellSolutions{clusterIdx,2} = maxScore;
+        end
+    else
+        cellSolutions(clusterIdx,:) = ...
+            Optimization_Gurobi(cellListDetections{clusterIdx}, ...
+            listCParts, model, PART_NMS_OVERLAP, PART_OCC_OVERLAP);
+    end
+    % DEBUG
     for dIdx = 1:length(cellSolutions{clusterIdx,1})
         ShowDetection(cellSolutions{clusterIdx,1}(dIdx), listCParts, 0, 0.5, 12321);
     end
-    pause;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1,4 +1,25 @@
 function bConnected = CheckConnectivity(startVertexIdx, vertexFlags, matAdjacency, exception)
+% .__                           __.
+%   \ `\~~---..---~~~~~~--.---~~| /   
+%    `~-.   `                   .~         _____ 
+%        ~.                .--~~    .---~~~    /
+%         / .-.      .-.      |  <~~        __/
+%        |  |_|      |_|       \  \     .--'
+%       /-.      -       .-.    |  \_   \_
+%       \-'   -..-..-    `-'    |    \__  \_ 
+%        `.                     |     _/  _/
+%          ~-                .,-\   _/  _/
+%         /                 -~~~~\ /_  /_
+%        |               /   |    \  \_  \_ 
+%        |   /          /   /      | _/  _/
+%        |  |          |   /    .,-|/  _/ 
+%        )__/           \_/    -~~~| _/
+%          \                      /  \
+%           |           |        /_---` 
+%           \    .______|      ./
+%           (   /        \    /
+%           `--'          /__/
+
 % input
 if nargin < 4, exception = []; end
 sizeGraph = length(vertexFlags);
@@ -32,3 +53,6 @@ bConnected = false;
 if vertexFlags * uncoveredFlags == 0, bConnected = true; end
 
 end
+
+%()()
+%('')HAANJU.YOO

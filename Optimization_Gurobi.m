@@ -1,5 +1,43 @@
 function [solution] = Optimization_Gurobi(detections, listCParts, model, ...
     partOverlapRatio, partOcclusionRatio)
+% quu..__
+%  $$$b  `---.__
+%   "$$b        `--.                          ___.---uuudP
+%    `$$b           `.__.------.__     __.---'      $$$$"              .
+%      "$b          -'            `-.-'            $$$"              .'|
+%        ".                                       d$"             _.'  |
+%          `.   /                              ..."             .'     |
+%            `./                           ..::-'            _.'       |
+%             /                         .:::-'            .-'         .'
+%            :                          ::''\          _.'            |
+%           .' .-.             .-.           `.      .'               |
+%           : /'$$|           .@"$\           `.   .'              _.-'
+%          .'|$u$$|          |$$,$$|           |  <            _.-'
+%          | `:$$:'          :$$$$$:           `.  `.       .-'
+%          :                  `"--'             |    `-.     \
+%         :##.       ==             .###.       `.      `.    `\
+%         |##:                      :###:        |        >     >
+%         |#'     `..'`..'          `###'        x:      /     /
+%          \                                   xXX|     /    ./
+%           \                                xXXX'|    /   ./
+%           /`-.                                  `.  /   /
+%          :    `-  ...........,                   | /  .'
+%          |         ``:::::::'       .            |<    `.
+%          |             ```          |           x| \ `.:``.
+%          |                         .'    /'   xXX|  `:`M`M':.
+%          |    |                    ;    /:' xXXX'|  -'MMMMM:'
+%          `.  .'                   :    /:'       |-'MMMM.-'
+%           |  |                   .'   /'        .'MMM.-'
+%           `'`'                   :  ,'          |MMM<
+%             |                     `'            |tbap\
+%              \                                  :MM.-'
+%               \                 |              .''
+%                \.               `.            /
+%                 /     .:::::::.. :           /
+%                |     .:::::::::::`.         /
+%                |   .:::------------\       /
+%               /   .''               >::'  /
+%               `',:                 :    .'
 
 tic;
 clear grb_model grb_params;
@@ -9,9 +47,6 @@ numPartTypes = floor(length(model.partfilters) / model.numcomponents);
 %==========================================
 % UNARI SCORES
 %==========================================
-fprintf('¦®---------------------------------------------------------¦¯');
-fprintf('¦­                     GRAPH SOLVING                       ¦­');
-fprintf('¦±---------------------------------------------------------¦°');
 fprintf('construct unary scorses...');
 scoreUnary = [detections.score];
 defaultVisiblePartScore = 0.5 - (numPartTypes - 1); % exclude root
@@ -26,7 +61,7 @@ fprintf('done!!\n');
     % PAIRWISE CHECK
     %==========================================
     % construct Q (pairwise score)
-    fprintf('>> construct Q and constraints...');
+    fprintf('construct Q and constraints...');
     scorePairwise = zeros(numVariables*(numVariables+1)/2, 3);
     constraints = zeros(numVariables^2, 2);
     numScorePairwise = 0;
@@ -61,7 +96,7 @@ fprintf('done!!\n');
     constraints = constraints(1:numConstraints,:);
     scorePairwise = scorePairwise(1:numScorePairwise,:);
     fprintf('...done!!\n');
-    fprintf('>> %d constraints / %d pairwise scores\n', numConstraints, numScorePairwise);
+    fprintf('%d constraints / %d pairwise scores\n', numConstraints, numScorePairwise);
 
     %==========================================
     % MODEL
@@ -97,18 +132,22 @@ fprintf('done!!\n');
     % SYSTEM PARAMETERS
     %==========================================
     grb_params.outputflag = 0;
-    grb_params.resultfile = 'result.lp';
+%     grb_params.resultfile = 'result.lp';
+    grb_params.timelimit = 60;
     t_const = toc;
-    fprintf(['>> construction time: ' datestr(datenum(0,0,0,0,0,t_const),'HH:MM:SS') '\n']);
+    fprintf(['construction time: ' datestr(datenum(0,0,0,0,0,t_const),'HH:MM:SS') '\n']);
 
     %==========================================
     % SOLVE
     %==========================================
-    fprintf('>> solve...');
+    curTime = clock;
+    fprintf(['solve (start at ' ...
+        datestr(datenum(0,0,0,curTime(4),curTime(5),curTime(6)),'HH:MM:SS') ...
+        ' / time limit: %dsec)...'], grb_params.timelimit);
     tic;
     grb_result = gurobi(grb_model, grb_params);
     t_solve = toc;
-    fprintf(['done!! ' datestr(datenum(0,0,0,0,0,t_solve),'HH:MM:SS') '\n']);
+    fprintf(['done!!\n' 'solving time: ' datestr(datenum(0,0,0,0,0,t_solve),'HH:MM:SS') '\n']);
 
     %==========================================
     % RESULT PACKAGING
@@ -127,3 +166,6 @@ fprintf('done!!\n');
 % end
 
 end
+
+%()()
+%('')HAANJU.YOO

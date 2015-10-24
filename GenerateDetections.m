@@ -1,4 +1,40 @@
 function  [cellListDetections] = GenerateDetections(listCParts, cellCombinationCluster)
+%                                                                           ,aa,       ,aa
+%                                                                            d"  "b    ,d",`b
+%                                                                          ,dP a  "b,ad8' 8 8
+%                                                                          d8' 8  ,88888a 8 8
+%                                                                         d8baa8ba888888888a8
+%                                                                      ,ad888888888YYYY888YYY,
+%                                                                   ,a888888888888"   "8P"  "b
+%                                                               ,aad8888tt,8888888b (0 `8, 0 8
+%                           ____________________________,,aadd888ttt8888ttt"8"I  "Yb,   `Ya  8
+%                     ,aad8888b888888aab8888888888b,     ,aatPt888ttt8888tt 8,`b,   "Ya,. `"aP
+%                 ,ad88tttt8888888888888888888888888ttttt888ttd88888ttt8888tt,t "ba,.  `"`d888
+%              ,d888tttttttttttttt888888888888888888888888ttt8888888888ttt888ttt,   "a,   `88'
+%             a888tttttttttttttttttttttttttt8888888888888ttttt88888ttt888888888tt,    `""8"'
+%            d8P"' ,tttttttttttttttttttttttttttttttttt88tttttt888tttttttt8a"8888ttt,   ,8'
+%           d8tb  " ,tt"  ""tttttttttttttttttttttttttttttttttt88ttttttttttt, Y888tt"  ,8'
+%           88tt)              "t" ttttt" """  """    "" tttttYttttttttttttt, " 8ttb,a8'
+%           88tt                    `"b'                  ""t'ttttttttttt"t"t   t taP"
+%           8tP                       `b                       ,tttttt' " " "tt, ,8"
+%          (8tb  b,                    `b,                 a,  tttttt'        ""dP'
+%          I88tb `8,                    `b                d'   tttttt        ,aP"
+%          8888tb `8,                   ,P               d'    "tt "t'    ,a8P"
+%         I888ttt, "b                  ,8'              ,8       "tt"  ,d"d"'
+%        ,888tttt'  8b               ,dP""""""""""""""""Y8        tt ,d",d'
+%      ,d888ttttP  d"8b            ,dP'                  "b,      "ttP' d'
+%    ,d888ttttPY ,d' dPb,        ,dP'                      "b,     t8'  8
+%   d888tttt8" ,d" ,d"  8      ,d"'                         `b     "P   8
+%  d888tt88888d" ,d"  ,d"    ,d"                             8      I   8
+% d888888888P' ,d"  ,d"    ,d"                               8      I   8
+% 88888888P' ,d"   (P'    d"                                 8      8   8
+% "8P"'"8   ,8'    Ib    d"                                  Y      8   8
+%       8   d"     `8    8                                   `b     8   Y
+%       8   8       8,   8,                                   8     Y   `b
+%       8   Y,      `b   `b                                   Y     `b   `b
+%       Y,   "ba,    `b   `b,                                 `b     8,   `"ba,
+%        "b,   "8     `b    `""b                               `b     `Yaa,adP'
+%          """""'      `baaaaaaP                                `YaaaadP"'
 
 %==========================================
 % CONFIGURATIONS
@@ -55,28 +91,9 @@ for clusterIdx = 1:numCluster
             cellListDetections{clusterIdx}(numCurClusterDetections) = ...
                 CDetection(curGeneratedCombination, curScore);
         end
-    end 
-%     %==========================================
-%     % SINGLE HEAD CLUSTER
-%     %==========================================
-%     if listSoleHeadCluster(clusterIdx)
-%         % find and save only the combination which has the maximum score
-%         maxCombinationScore = 0.0;
-%         maxCombinationIdx = 0;
-%         for cIdx = 1:size(curClusterCombinations, 1)
-%             curCombination = curClusterCombinations(cIdx,:);
-%             curCParts = listCParts(curCombination);
-%             curScore = sum([curCParts.score]);
-%             if curScore < maxCombinationScore
-%                 continue;
-%             end
-%             maxCombinationScore = curScore;
-%             maxCombinationIdx = cIdx;        
-%         end
-%         if 0 == maxCombinationIdx, continue; end
-%         maxCombination = curClusterCombinations(cIdx,:);
-%         cellListDetections{clusterIdx}(1) = CDetection(maxCombination, maxCombinationScore);
-%         continue;
-%     end
+    end
 end
 end
+
+%()()
+%('')HAANJU.YOO

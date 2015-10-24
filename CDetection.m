@@ -1,4 +1,24 @@
 classdef CDetection
+    % .__                           __.
+    %   \ `\~~---..---~~~~~~--.---~~| /   
+    %    `~-.   `                   .~         _____ 
+    %        ~.                .--~~    .---~~~    /
+    %         / .-.      .-.      |  <~~        __/
+    %        |  |_|      |_|       \  \     .--'
+    %       /-.      -       .-.    |  \_   \_
+    %       \-'   -..-..-    `-'    |    \__  \_ 
+    %        `.                     |     _/  _/
+    %          ~-                .,-\   _/  _/
+    %         /                 -~~~~\ /_  /_
+    %        |               /   |    \  \_  \_ 
+    %        |   /          /   /      | _/  _/
+    %        |  |          |   /    .,-|/  _/ 
+    %        )__/           \_/    -~~~| _/
+    %          \                      /  \
+    %           |           |        /_---` 
+    %           \    .______|      ./
+    %           (   /        \    /
+    %           `--'          /__/
     properties
         combination
         score
@@ -16,9 +36,13 @@ classdef CDetection
                 bCompatible = false;
                 return; 
             end
-            % check parts overlap
-            for p1 = CD1.combination(0 < CD1.combination)                
-                for p2 = CD2.combination(0 < CD2.combination)                    
+            % check parts overlap (except root)
+            partsForCheck1 = CD1.combination(2:end);
+            partsForCheck2 = CD2.combination(2:end);
+            partsForCheck1 = partsForCheck1(0 < partsForCheck1);
+            partsForCheck2 = partsForCheck2(0 < partsForCheck2);
+            for p1 = partsForCheck1
+                for p2 = partsForCheck2                 
                     if ~IsCompatible(listCPart(p1), listCPart(p2), partOveralapRatio)
                         bCompatible = false;
                         return;
@@ -28,10 +52,11 @@ classdef CDetection
         end
         function numOccParts = NumOccludedParts(CD1, CD2, listCPart, model, partOverlapRatio) %, image)
             numOccParts = 0;
-            occludedType1 = find(0 == CD1.combination); occludedType1(1) = []; % except root
-            occludedType2 = find(0 == CD2.combination); occludedType2(1) = [];
-            visibleType1 = find(0 ~= CD1.combination);
-            visibleType2 = find(0 ~= CD2.combination);
+            % roots are excepted
+            occludedType1 = find(0 == CD1.combination); occludedType1(1 == occludedType1) = [];
+            occludedType2 = find(0 == CD2.combination); occludedType2(1 == occludedType2) = [];
+            visibleType1 = find(0 ~= CD1.combination);  visibleType1(1 == visibleType1) = [];
+            visibleType2 = find(0 ~= CD2.combination);  visibleType2(1 == visibleType2) = [];
             det1Component = listCPart(CD1.combination(2)).component;
             det2Component = listCPart(CD2.combination(2)).component;
             det1HeadIdx = CD1.combination(2);

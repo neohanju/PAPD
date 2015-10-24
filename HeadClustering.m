@@ -12,6 +12,26 @@ function [cellCombinationCluster, listSingleHeadCluster] = ...
 % - cellHeadCluster: set of head indices of each cluster
 % - listSoleHeadCluster: flags indicate whether the cluster contains sole head
 % - headIdxSet: head indices
+% .__                           __.
+%   \ `\~~---..---~~~~~~--.---~~| /   
+%    `~-.   `                   .~         _____ 
+%        ~.                .--~~    .---~~~    /
+%         / .-.      .-.      |  <~~        __/
+%        |  |_|      |_|       \  \     .--'
+%       /-.      -       .-.    |  \_   \_
+%       \-'   -..-..-    `-'    |    \__  \_ 
+%        `.                     |     _/  _/
+%          ~-                .,-\   _/  _/
+%         /                 -~~~~\ /_  /_
+%        |               /   |    \  \_  \_ 
+%        |   /          /   /      | _/  _/
+%        |  |          |   /    .,-|/  _/ 
+%        )__/           \_/    -~~~| _/
+%          \                      /  \
+%           |           |        /_---` 
+%           \    .______|      ./
+%           (   /        \    /
+%           `--'          /__/
 
 %==========================================
 % HEAD CLUSTERING
@@ -100,3 +120,6 @@ for clusterIdx = 1:numCluster
 end
 
 end
+
+%()()
+%('')HAANJU.YOO
