@@ -1,5 +1,5 @@
 function [solution] = Optimization_Gurobi(detections, listCParts, model, ...
-    partOverlapRatio, partOcclusionRatio)
+    partOverlapRatio, partOcclusionRatio, timelimit)
 % quu..__
 %  $$$b  `---.__
 %   "$$b        `--.                          ___.---uuudP
@@ -132,8 +132,7 @@ fprintf('done!!\n');
     % SYSTEM PARAMETERS
     %==========================================
     grb_params.outputflag = 0;
-%     grb_params.resultfile = 'result.lp';
-    grb_params.timelimit = 60;
+    grb_params.timelimit = timelimit;
     t_const = toc;
     fprintf(['construction time: ' datestr(datenum(0,0,0,0,0,t_const),'HH:MM:SS') '\n']);
 

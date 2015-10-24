@@ -82,6 +82,7 @@ papd_init;
 PART_NMS_OVERLAP = 0.3;
 PART_OCC_OVERLAP = 0.8;
 CLUSTER_OVERLAP  = 0.1;
+SOVLER_TIMELIMIT = 1200;
 
 % load input frame
 INPUT_FILE_NAME = 'img5';
@@ -173,37 +174,6 @@ for componentIdx = 1:numComponent
             end
         end
     end
-%     for typeIdx = 1:numPartTypes
-%         % get component infos
-%         curCoords = curComponents(typeOffset:typeOffset+3,:);
-%         curScores = curComponentScores(typeIdx,:);
-%         numCurCandidates = size(curCoords, 2);
-%         curArrayIndex    = zeros(1, numCurCandidates);        
-%         for candidateIdx = 1 : numCurCandidates            
-%             % get part infos
-%             curPyraLevel = curComponentScores(end,candidateIdx);
-%             curScore     = curComponentScores(typeIdx,candidateIdx);
-%             curCoord     = curCoords(:,candidateIdx)';
-%             curScale     = 2 / ( 2 ^ ( 1 / model.interval ) )^(curPyraLevel-1);
-%             
-%             if 1 ~= typeIdx, curA2p = 0.5 * curA2p; end            
-%             % save candidates part into 'CPart' class instances
-%             numParts = numParts + 1;
-%             listCParts(numParts) = ...
-%                 CPart(componentIdx, typeIdx, curCoord, curScore, ...
-%                 curPyraLevel, curScale, curA2p, ...
-%                 curComponentIdx(candidateIdx));            
-%             % save index            
-%             curArrayIndex(candidateIdx) = numParts;
-%             % occlusion prior
-%             imageRect = round(curCoord);
-%             partMap(imageRect(2):imageRect(4),imageRect(1):imageRect(3)) = 1.0;
-%         end        
-%         % save specific part positions locations in the array of class
-%         cellIndexAmongType{typeIdx,componentIdx} = curArrayIndex;
-%         
-%         typeOffset = typeOffset + 4;
-%     end
 end
 fprintf('done!\n');
 
@@ -291,12 +261,13 @@ for clusterIdx = 1:numCluster
     else
         cellSolutions(clusterIdx,:) = ...
             Optimization_Gurobi(cellListDetections{clusterIdx}, ...
-            listCParts, model, PART_NMS_OVERLAP, PART_OCC_OVERLAP);
+            listCParts, model, PART_NMS_OVERLAP, PART_OCC_OVERLAP, SOVLER_TIMELIMIT);
     end
     % DEBUG
     for dIdx = 1:length(cellSolutions{clusterIdx,1})
         ShowDetection(cellSolutions{clusterIdx,1}(dIdx), listCParts, 0, 0.5, 12321);
     end
+    pause(0.01);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
