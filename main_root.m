@@ -211,10 +211,9 @@ fprintf('done!\n');
 % HEAD CLUSTERING
 %==========================================
 fprintf('Head clustering...');
-[cellHeadCluster, listSoleHeadCluster, headIdxSet] = HeadClustering(...
-    listCParts, cellIndexAmongType, model, CLUSTER_OVERLAP, PART_NMS_OVERLAP);
-numHeads = length(headIdxSet);
-numCluster = length(cellHeadCluster);
+[cellCombinationCluster, listSingleHeadCluster] = ...
+    HeadClustering(FullbodyCombinations, listCParts);
+numCluster = length(cellCombinationCluster);
 fprintf('done!\n');
 
 
@@ -222,44 +221,11 @@ fprintf('done!\n');
 %% GENERATE DETECTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fprintf('Generate Detections..\n');
+fprintf('Generate Detections...');
 tic;
-
-%==========================================
-% DETECTIONS FROM EACH CLUSTER
-%==========================================
-
-
-
-
-cellListDetections = cell(1, numCluster);
-fullBodyConfiguration = ones(1, numPartTypes); fullBodyConfiguration(1) = 0;
-for clusterIdx = 1:numCluster
-    % head indices of the head cluster
-    curHeadIdxs = cellHeadCluster{clusterIdx};
-    curHeadComponents = [listCParts(curHeadIdxs).component];
-    curHeadRootID = [listCParts(curHeadIdxs).rootID];
-    % get combinations
-    partsInCluster = [];
-    for headIdx = curHeadIdxs
-        curHeadIdxInCell = find([cellIndexAmongType{2,:}]==headIdx);
-        curParts = [];
-        % find full parts corresponding to current heads.
-        for k = 1: size(cellIndexAmongType,1)
-            curPartIdxs = [cellIndexAmongType{k,:}];
-            curParts = [curParts, curPartIdxs(curHeadIdxInCell)];
-        end
-        partsInCluster = [partsInCluster; curParts];            
-    end
-
-    % generate Combinations and Detections
-    fprintf('Cluster (%2d/%2d): ', clusterIdx, numCluster);
-    cellListDetections{clusterIdx} = ...
-        GenerateDetectionsFromFullParts(listCParts, partsInCluster, ...
-        numPartTypes);
-end
+cellListDetections = GenerateDetections(listCParts, cellCombinationCluster);
 t_d = toc;
-fprintf(['elapsed time for generating detections: ' ...
+fprintf(['done!\nelapsed time for generating detections: ' ...
     datestr(datenum(0,0,0,0,0,t_d),'HH:MM:SS') '\n']);
 
 

@@ -4,6 +4,12 @@ classdef CPart
         type
         % 1:root        2:head      3:foot1     4:shoulder1     5:groin
         % 6:shouler2    7:arm1      8:arm2      9:foot2
+        % (configuration)
+        %        2
+        %     4     6
+        %     7     8
+        %        5
+        %      9   3
         coords = zeros(1,4) % [x1, y1, x2, y2]
         score
         pyramidLevel
