@@ -1,134 +1,82 @@
-function [listDetections] = GenerateDetections(listPartInfos, ...
-    cellIndexAmongType, model, occlusionMap, occlusionOverlapRatio, ...
-    configurations)
+function  [cellListDetections] = GenerateDetections(listCParts, cellCombinationCluster)
 
-[numPartTypes, numComponents] = size(cellIndexAmongType);
-if nargin < 6
-    %==========================================
-    % CONFIGURATIONS
-    %==========================================
-    % (head 반드시 포함되게 할 것, root는 고려하지 않을 것)
-    configurations = zeros(2^(numPartTypes-2), numPartTypes);
-    for cIdx = 1:size(configurations, 1)
-        flags = ['01', dec2bin(cIdx-1, numPartTypes-2)];                    
-        for typeIdx = 1:numPartTypes
-            configurations(cIdx,typeIdx) = str2double(flags(typeIdx));                        
-        end                    
+%==========================================
+% CONFIGURATIONS
+%==========================================
+% (head 반드시 포함되게 할 것, head로부터 configuration 내 모든 part로 path 존재하게끔)
+% part adjacency matrix
+Ap = [0 0 0 0 0 0 0 0 0; %     2
+      0 0 0 1 0 1 0 0 0; %  4     6
+      0 0 0 0 1 0 0 1 1; %  7     8
+      0 1 0 0 0 1 1 0 0; %     5
+      0 0 1 0 0 0 1 1 1; %   9   3
+      0 1 0 1 0 0 0 1 0; 
+      0 0 0 1 1 0 0 0 1; 
+      0 0 1 0 1 1 0 0 0;
+      0 0 1 0 1 0 1 0 0];
+numPartTypes = size(Ap, 1);
+configurations = zeros(2^(numPartTypes-2), numPartTypes);
+numConfigurations = 0;
+for cIdx = 1:size(configurations, 1)
+    curBinaryString = ['11', dec2bin(cIdx-1, numPartTypes-2)];
+    curConfiguration = zeros(1, numPartTypes);
+    for typeIdx = 1:numPartTypes
+        curConfiguration(typeIdx) = str2double(curBinaryString(typeIdx));
     end
+    % check connectivity (except root and head)
+    if ~CheckConnectivity(2, curConfiguration, Ap, [1, 2]), continue; end
+    numConfigurations = numConfigurations + 1;
+    configurations(numConfigurations,:) = curConfiguration;
 end
-if nargin < 5, occlusionOverlapRatio = 0.8; end
-if nargin < 4
-    bOcclusionPrior = false;
-    occlusionMap = [];
-else
-    bOcclusionPrior = true; 
-end
+configurations = configurations(1:numConfigurations,:);
 
 %==========================================
 % COMBINATIONS
 %==========================================
-% (apart from configuration generation for the combinience of the code readability)
-combinations = [];
-for componentIdx = 1:numComponents
-    fprintf('Component: %d/%d\n', componentIdx, numComponents);
-    for cIdx = 1:size(configurations, 1)
-        fprintf('Configuration: %d/%d:...', cIdx, size(configurations, 1));
-        combinationsInCurConfiguration = zeros(1, numPartTypes);
-
-        for typeIdx = 1:numPartTypes
-            % bit check                        
-            if 0 == configurations(cIdx,typeIdx), continue; end
-
-            % generate new combinations with boxes of the current part type
-            numNewCombinations = size(combinationsInCurConfiguration, 1)...
-                *length(cellIndexAmongType{typeIdx,componentIdx});
-            newCombinations = zeros(numNewCombinations, numPartTypes);
-            newCombinationIdx = 0;    
-
-            for combIdx = 1:size(combinationsInCurConfiguration, 1)
-                curCombination = combinationsInCurConfiguration(combIdx,:);
-                for partIdx = cellIndexAmongType{typeIdx,componentIdx}
-                    % check associability between inserted and candidate parts
-                    bAssociable = true;
-                    for preInsertedPartIdx = curCombination                                    
-                        if 0 == preInsertedPartIdx, continue; end
-                        bAssociable = IsAssociable(...
-                            listPartInfos(preInsertedPartIdx), listPartInfos(partIdx), model);
-                        if ~bAssociable, break; end
-                    end                                
-                    if ~bAssociable, continue; end
-                    
-                    % check occlusion prior
-                    newCombination = curCombination;
-                    newCombination(typeIdx) = partIdx;
-                    curListPartInfoIdx = newCombination(0 ~= newCombination);
-                    curListPartInfo = listPartInfos(curListPartInfoIdx);
-                    if bOcclusionPrior && ~CheckPartOcclusion(...
-                            curListPartInfo, model, occlusionMap, occlusionOverlapRatio);
-                        continue;
-                    end
-                    
-                    % save combination for propagation
-                    newCombinationIdx = newCombinationIdx + 1;
-                    newCombinations(newCombinationIdx,:) = newCombination;
-                end
-            end                    
-            combinationsInCurConfiguration = newCombinations(1:newCombinationIdx, :);
+numCluster = length(cellCombinationCluster);
+cellListDetections = cell(numCluster, 1);
+for clusterIdx = 1:numCluster
+    curClusterCombinations = cellCombinationCluster{clusterIdx};
+    numCurCombinations = size(curClusterCombinations, 1);
+    cellListDetections{clusterIdx} = CDetection.empty();
+    numCurClusterDetections = 0;
+    for cIdx = 1:numCurCombinations
+        curCombination = curClusterCombinations(cIdx,:);                     % dim: 1x9
+        repmatCurCombination = repmat(curCombination, numConfigurations, 1); % dim: 128x9
+        % element-wise multiplication 
+        generatedCombinations = [configurations .* repmatCurCombination];
+        % make CDetection instance
+        for dIdx = 1:numConfigurations
+            curGeneratedCombination = generatedCombinations(dIdx,:);
+            curListCParts = ...
+                listCParts(curGeneratedCombination(0 ~= curGeneratedCombination));
+            curScore = sum([curListCParts.score]);
+            numCurClusterDetections = numCurClusterDetections + 1;
+            cellListDetections{clusterIdx}(numCurClusterDetections) = ...
+                CDetection(curGeneratedCombination, curScore);
         end
-        fprintf('%d sets are made\n', size(combinationsInCurConfiguration, 1));
-        combinations = [combinations; combinationsInCurConfiguration];
-    end
+    end 
+%     %==========================================
+%     % SINGLE HEAD CLUSTER
+%     %==========================================
+%     if listSoleHeadCluster(clusterIdx)
+%         % find and save only the combination which has the maximum score
+%         maxCombinationScore = 0.0;
+%         maxCombinationIdx = 0;
+%         for cIdx = 1:size(curClusterCombinations, 1)
+%             curCombination = curClusterCombinations(cIdx,:);
+%             curCParts = listCParts(curCombination);
+%             curScore = sum([curCParts.score]);
+%             if curScore < maxCombinationScore
+%                 continue;
+%             end
+%             maxCombinationScore = curScore;
+%             maxCombinationIdx = cIdx;        
+%         end
+%         if 0 == maxCombinationIdx, continue; end
+%         maxCombination = curClusterCombinations(cIdx,:);
+%         cellListDetections{clusterIdx}(1) = CDetection(maxCombination, maxCombinationScore);
+%         continue;
+%     end
 end
-
-%==========================================
-% COMBINATIONS -> DETECTIONS
-%==========================================
-listDetections = CDetection.empty();
-numCombinations = size(combinations, 1);
-fprintf('>> total %d sets are made\n', numCombinations);
-for cIdx = 1:numCombinations
-    curCombination = combinations(cIdx,:);    
-    curListPartInfo = listPartInfos(curCombination(0 ~= curCombination));
-    curScore = sum([curListPartInfo.score]);
-    listDetections(cIdx) = CDetection(curCombination, curScore);
 end
-
-end
-
-function bPartOccluded = CheckPartOcclusion(partList, model, occlusionMap, occlusionOverlapRatio)
-
-bPartOccluded = true;
-% input check
-if isempty(occlusionMap), return; end
-
-% anchor to pixel dimension
-anchorHead = model.defs{1}.anchor;
-anchorW = 6;
-anchorH = 6;
-partW = round(partList(1).a2p * anchorW);
-partH = round(partList(1).a2p * anchorH);
-partArea = partW * partH;
-headPos = partList(1).coords(1:2);
-
-% get missing part info
-currentParts = [partList.type];
-missingParts = 1:9; missingParts(currentParts) = []; missingParts(1) = [];
-
-% occlusion check
-for typeIdx = missingParts
-    curAnchor =  model.defs{typeIdx-1}.anchor;
-    vecPixelDiff = partList(1).a2p * (curAnchor - anchorHead);
-    candidatePos = round(headPos + vecPixelDiff);
-    occludedArea = sum(sum(occlusionMap(...
-        candidatePos(2):candidatePos(2)+partH-1,...
-        candidatePos(1):candidatePos(1)+partW-1)));
-    if occlusionOverlapRatio > occludedArea / partArea
-        bPartOccluded = false;
-        return;
-    end
-end
-
-end
-
-%()()
-%('')HAANJU.YOO

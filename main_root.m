@@ -70,197 +70,163 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 dbstop if error
-addpath library;
-addpath d:/gurobi605/win64/matlab % for Gurobi solver
+
+% init
+papd_init;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER AND PRESET, INPUT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% mode
-DO_BATCH_GEN_DETECTIONS = false;
-
 % parameters
 PART_NMS_OVERLAP = 0.3;
 PART_OCC_OVERLAP = 0.8;
-CLUSTER_OVERLAP = 0.1;
+CLUSTER_OVERLAP  = 0.1;
 
 % load input frame
 INPUT_FILE_NAME = 'img5';
-image = imread(['data/' INPUT_FILE_NAME '.jpg']);
-[imgH, imgW, imgC] = size(image);
+image      = imread(['data/' INPUT_FILE_NAME '.jpg']);
 imageScale = 2.0;
+[imgH, imgW, imgC] = size(image);
 
 % load deformable part model
 load model/INRIAPERSON_star.mat;
 
 % load part detection results
 load(['data/' INPUT_FILE_NAME '_part_candidates.mat']);
-numComponent = length(unique(coords(end-1,:)));
 [numPartTypes, numDetections] = size(partscores);
-numPartTypes = numPartTypes - 1; % since the last row of partscores is "pyramidLevel"
+numPartTypes = numPartTypes - 1; % exclude "pyramidLevel"
+numComponent = length(unique(coords(end-1,:)));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PART RESPONSE AND PRE-PROCESSING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %==========================================
-% MAKE LISTCPARTS
-%==========================================
-fprintf('Make part list..');
-numParts = 0;
-listCParts = CPart.empty();
-cellIndexAmongType = cell(numPartTypes, numComponent); % array positions of a specific part and component
-partMap = zeros(imageScale * imgH, imageScale * imgW);
-for componentIdx = 1:numComponent
-    
-    % get data of current component
-    curComponentIdx = find(componentIdx == coords(end-1,:));
-    curComponents = coords(:,curComponentIdx);
-    curComponentScores = partscores(:,curComponentIdx);   
-    
-    typeOffset = 1;
-    for typeIdx = 1:numPartTypes        
-        % non-maximal suppression
-        curCoords = curComponents(typeOffset:typeOffset+3,:);
-        curScores = curComponentScores(typeIdx,:);
-        numCurCandidates = size(curCoords, 2);
-        
-        % save candidates part into 'CPart' class instances
-        curArrayIndex = [];
-        for candidateIdx = 1 : numCurCandidates
-            curScore = curComponentScores(typeIdx,candidateIdx);
-            curCoord = curCoords(:,candidateIdx)';
-            curPyraLevel =  curComponentScores(end, candidateIdx);
-            curScale = 2 / ( 2 ^ ( 1 / model.interval ) )^(curPyraLevel-1);
-            numParts = numParts + 1;
-            curA2p = model.sbin / curScale;
-            if 1 ~= typeIdx, curA2p = 0.5 * curA2p; end            
-            listCParts(numParts) = ...
-                CPart(componentIdx, typeIdx, curCoord, curScore, ...
-                curPyraLevel, curScale, curA2p, ...
-                curComponentIdx(candidateIdx));
-            curArrayIndex = [curArrayIndex, numParts];
-            
-            imageRect = round(curCoord);
-            partMap(imageRect(2):imageRect(4),imageRect(1):imageRect(3)) = 1.0;
-        end    
-        
-        % save specific part positions locations in the array of class
-        cellIndexAmongType{typeIdx,componentIdx} = curArrayIndex;
-        
-        typeOffset = typeOffset + 4;
-    end
-end
-fprintf('done!\n');
-
-%==========================================
 % NON MAXIMAL SUPPRESSION WITH HEAD PART
 %==========================================
-pickedHeadRootIdx = [];
+pickedIdx = cell(1, numComponent);
+numRoots = 0;
 for componentIdx = 1:numComponent    
     % get data of current component
-    curComponentIdx = find(componentIdx == coords(end-1,:));
-    curComponents = coords(:,curComponentIdx);
+    curComponentIdx    = find(componentIdx == coords(end-1,:));
+    curComponents      = coords(:,curComponentIdx);
     curComponentScores = partscores(:,curComponentIdx);      
-    % head index = 2    
-    typeIdx    = 2;
+    typeIdx    = 2; % head = 2
     typeOffset = 5;
     headCoords = curComponents(typeOffset:typeOffset+3,:);
     headScores = curComponentScores(typeIdx,:);    
-    % nms
-    nmsHeadIdx = curComponentIdx(nms2([headCoords; headScores]', PART_NMS_OVERLAP));
-    pickedHeadRootIdx = [pickedHeadRootIdx; nmsHeadIdx'];    
-    % 'pickedHeadRootIdx' means 'CPart.rootID'
-end
+    % nms    
+    pickedIdx{componentIdx} = ...
+        curComponentIdx(nms2([headCoords; headScores]', PART_NMS_OVERLAP));
+    numRoots = numRoots + length(pickedIdx{componentIdx});
+end 
 
+%==========================================
+% MAKE LISTCPARTS
+%==========================================
+fprintf('Make part list...');
+
+numParts = 0;
+listCParts = CPart.empty();
+
+numFullbodies = 0;
+FullbodyCombinations = zeros(numRoots, numPartTypes);
+
+% occlusion prior
+partMap = zeros(imageScale * imgH, imageScale * imgW);
+
+% array positions of a specific part and component
+cellIndexAmongType = cell(numPartTypes, numComponent); 
+for componentIdx = 1:numComponent
+    % get data of current component
+    curComponentIdx    = pickedIdx{componentIdx};
+    curComponents      = coords(:,curComponentIdx);
+    curComponentScores = partscores(:,curComponentIdx);    
+    
+    for rootIdx = pickedIdx{componentIdx}              
+        curPyramidLevel = partscores(end,rootIdx);
+        % note that scale and a2p are fit to root scale
+        curScale  = 2^(-(curPyramidLevel-1)/model.interval);
+        curA2p    = model.sbin / curScale;        
+        curScore  = partscores(1:end-1,rootIdx);             
+        typeOffset = 1;
+        numFullbodies = numFullbodies + 1;
+        for typeIdx = 1:numPartTypes
+            curCoord = coords(typeOffset:typeOffset+3,rootIdx)';
+            typeOffset = typeOffset + 4;
+            % save candidates part into 'CPart' class instances
+            numParts = numParts + 1;
+            listCParts(numParts) = CPart( ...
+                componentIdx, typeIdx, curCoord, ...
+                partscores(typeIdx,rootIdx), ...
+                curPyramidLevel, curScale, curA2p, rootIdx);            
+            % save index
+            FullbodyCombinations(numFullbodies,typeIdx) = numParts;            
+            % occlusion prior
+            imageRect = round(curCoord);
+            partMap(imageRect(2):imageRect(4),imageRect(1):imageRect(3)) = 1.0;
+            % enlarge scale and a2p for parts
+            if 1 == typeIdx
+                curScale = 2.0 * curScale;
+                curA2p = 2.0 * curA2p; 
+            end
+        end
+    end
+%     for typeIdx = 1:numPartTypes
+%         % get component infos
+%         curCoords = curComponents(typeOffset:typeOffset+3,:);
+%         curScores = curComponentScores(typeIdx,:);
+%         numCurCandidates = size(curCoords, 2);
+%         curArrayIndex    = zeros(1, numCurCandidates);        
+%         for candidateIdx = 1 : numCurCandidates            
+%             % get part infos
+%             curPyraLevel = curComponentScores(end,candidateIdx);
+%             curScore     = curComponentScores(typeIdx,candidateIdx);
+%             curCoord     = curCoords(:,candidateIdx)';
+%             curScale     = 2 / ( 2 ^ ( 1 / model.interval ) )^(curPyraLevel-1);
+%             
+%             if 1 ~= typeIdx, curA2p = 0.5 * curA2p; end            
+%             % save candidates part into 'CPart' class instances
+%             numParts = numParts + 1;
+%             listCParts(numParts) = ...
+%                 CPart(componentIdx, typeIdx, curCoord, curScore, ...
+%                 curPyraLevel, curScale, curA2p, ...
+%                 curComponentIdx(candidateIdx));            
+%             % save index            
+%             curArrayIndex(candidateIdx) = numParts;
+%             % occlusion prior
+%             imageRect = round(curCoord);
+%             partMap(imageRect(2):imageRect(4),imageRect(1):imageRect(3)) = 1.0;
+%         end        
+%         % save specific part positions locations in the array of class
+%         cellIndexAmongType{typeIdx,componentIdx} = curArrayIndex;
+%         
+%         typeOffset = typeOffset + 4;
+%     end
+end
+fprintf('done!\n');
 
 %==========================================
 % HEAD CLUSTERING
 %==========================================
-headIdxSet = [];
-numComponent = size(cellIndexAmongType, 2);
-for componentIdx = 1:numComponent
-    curHeadCellIndex = cellIndexAmongType{2, componentIdx};
-    curHeadCellRootID = [listCParts(curHeadCellIndex).rootID];
-    isPicked = ismember(curHeadCellRootID, pickedHeadRootIdx);
-    headIdxSet = [headIdxSet, curHeadCellIndex(0~=isPicked)];
-end
-
-fprintf('Head clustering..');
-[cellHeadCluster, listSoleHeadCluster] = HeadClusteringNMS(...
-    headIdxSet, listCParts, model, CLUSTER_OVERLAP, PART_NMS_OVERLAP);
-numHeads = length(headIdxSet);
-numCluster = length(cellHeadCluster);
+fprintf('Head clustering...');
+[cellCombinationCluster, listSingleHeadCluster] = ...
+    HeadClustering(FullbodyCombinations, listCParts);
+numCluster = length(cellCombinationCluster);
 fprintf('done!\n');
-%----------------------------
-% Not used any longer...
-%----------------------------
-% % select heads only in NMS-picked indices
-% prevCellHeadCluster = cellHeadCluster;
-% for clusterIdx = 1:numCluster
-%     curHeadClusterIdx = cellHeadCluster{clusterIdx};
-%     curHeadRootID = [listCParts(curHeadClusterIdx).rootID];
-%     % select head indices whose root ids equal to pickedHeadIdx (nms results)
-%     newHeadClusterIdx = curHeadClusterIdx((0~=ismember(curHeadRootID, pickedHeadRootIdx)));    
-%     % store new head cluster indices
-%     cellHeadCluster{clusterIdx} = newHeadClusterIdx;
-% end
-
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% GENERATE DETECTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if DO_BATCH_GEN_DETECTIONS
-    load(['data/' INPUT_FILE_NAME '_detections_using_root.mat']);
-else
-    fprintf('Generate Detections..\n');
-    tic;
-    %==========================================
-    % DETECTIONS FROM EACH CLUSTER
-    %==========================================
-    cellListDetections = cell(1, numCluster);
-    fullBodyConfiguration = ones(1, numPartTypes); fullBodyConfiguration(1) = 0;
-    for clusterIdx = 1:numCluster
-        % head indices of the head cluster
-        curHeadIdxs = cellHeadCluster{clusterIdx};
-        curHeadComponents = [listCParts(curHeadIdxs).component];
-        curHeadRootID = [listCParts(curHeadIdxs).rootID];
-        % get combinations
-        partsInCluster = [];
-        for headIdx = curHeadIdxs
-            curHeadIdxInCell = find([cellIndexAmongType{2,:}]==headIdx);
-            curParts = [];
-            % find full parts corresponding to current heads.
-            for k = 1: size(cellIndexAmongType,1)
-                curPartIdxs = [cellIndexAmongType{k,:}];
-                curParts = [curParts, curPartIdxs(curHeadIdxInCell)];
-            end
-            partsInCluster = [partsInCluster; curParts];            
-        end
-        
-        % generate Combinations and Detections
-        fprintf('Cluster (%2d/%2d): ', clusterIdx, numCluster);
-        cellListDetections{clusterIdx} = ...
-            GenerateDetectionsFromFullParts(listCParts, partsInCluster, ...
-            numPartTypes);
-    end
-    t_d = toc;
-    fprintf(['>> elapsed time for generating detections: ' ...
-        datestr(datenum(0,0,0,0,0,t_d),'HH:MM:SS') '\n']);
 
-    tic;
-    fprintf('>> saving detections...');
-    save(['data/' INPUT_FILE_NAME '_detections_using_root.mat'], '-v6', ...
-        'cellListDetections', 'listCParts', 'cellIndexAmongType', ...
-        'cellHeadCluster', 'listSoleHeadCluster', 'headIdxSet');
-    fprintf('done!!\n');
-    t_s = toc;
-    fprintf(['>> elapsed time for saving detections: ' ...
-        datestr(datenum(0,0,0,0,0,t_s),'HH:MM:SS') '\n']);
-end
+fprintf('Generate Detections...');
+tic;
+cellListDetections = GenerateDetections(listCParts, cellCombinationCluster);
+t_d = toc;
+fprintf(['done!\nelapsed time for generating detections: ' ...
+    datestr(datenum(0,0,0,0,0,t_d),'HH:MM:SS') '\n']);
 
 
 %===========================================================

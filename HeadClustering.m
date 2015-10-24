@@ -1,13 +1,13 @@
-function [cellHeadCluster, listSoleHeadCluster, headIdxSet] = HeadClustering(...
-    listCParts, cellIndexAmongType, model, clusterOverlapRatio, partOverlapRatio)
+function [cellCombinationCluster, listSingleHeadCluster] = ...
+    HeadClustering(FullbodyCombinations, listCParts)
 % <description>
 % - clustering heads with connectivity by parts overlap
 % <input>
+% - FullbodyCombinations: index combinations among full bodies
 % - listCParts: list of part class instances
-% - cellIndexAmongType: part index set among types and components
 % - model: deformable part model
 % - clusterOverlapRatio: cluster merging criteria
-% - partOverlapRatio: sole head cluster decision criteria
+% - partOverlapRatio: single head cluster decision criteria
 % <output>
 % - cellHeadCluster: set of head indices of each cluster
 % - listSoleHeadCluster: flags indicate whether the cluster contains sole head
@@ -16,85 +16,87 @@ function [cellHeadCluster, listSoleHeadCluster, headIdxSet] = HeadClustering(...
 %==========================================
 % HEAD CLUSTERING
 %==========================================
-headIdxSet = [];
-numComponent = size(cellIndexAmongType, 2);
-for componentIdx = 1:numComponent
-    headIdxSet = [headIdxSet, cellIndexAmongType{2, componentIdx}];
-end
-numHeads = length(headIdxSet);
+numHeads = size(FullbodyCombinations, 1);
 clusterLabels = zeros(1, numHeads);
-
-nextLabel = 1;
-for head1Idx = 1:numHeads
-    curLabel = clusterLabels(head1Idx);
+nextLabel = 0;
+for h1 = 1:numHeads
+    curCombination1 = FullbodyCombinations(h1,:);
+    curLabel = clusterLabels(h1);
     if 0 == curLabel
-        curLabel = nextLabel;
-        clusterLabels(head1Idx) = curLabel;
         nextLabel = nextLabel + 1;
+        curLabel = nextLabel;
+        clusterLabels(h1) = curLabel;        
     end
     
-    for head2Idx = head1Idx+1:numHeads
-        if curLabel == clusterLabels(head2Idx), continue; end
-        
+    for h2 = h1+1:numHeads
+        if curLabel == clusterLabels(h2), continue; end
+        curCombination2 = FullbodyCombinations(h2,:);
         % check adjacency
-        if ~IsNeighbor(listCParts(headIdxSet(head1Idx)), ...
-                listCParts(headIdxSet(head2Idx)), model, clusterOverlapRatio)
-            continue;
-        end
-        if 0 == clusterLabels(head2Idx)
-            clusterLabels(head2Idx) = curLabel;
-            continue;
-        end
+        bNeighbor = CheckCombinationOverlap(...
+            curCombination1, curCombination2, listCParts, 0.0);
+        if ~bNeighbor, continue; end
         
-        % label update
-        if curLabel < clusterLabels(head2Idx)
-            clusterLabels(clusterLabels == clusterLabels(head2Idx)) = curLabel;
+        % assign label
+        if 0 == clusterLabels(h2)
+            clusterLabels(h2) = curLabel;
+            continue;
+        end
+        % entire label refresh
+        if curLabel < clusterLabels(h2)
+            clusterLabels(clusterLabels == clusterLabels(h2)) = curLabel;
         else
-            clusterLabels(clusterLabels == curLabel) = clusterLabels(head2Idx);
-            curLabel = clusterLabels(head2Idx);
+            clusterLabels(clusterLabels == curLabel) = clusterLabels(h2);
+            curLabel = clusterLabels(h2);
         end
     end
 end
 
 % label refresh
 [clusterLabels, sortedIdx] = sort(clusterLabels, 'ascend');
-headIdxSet = headIdxSet(sortedIdx);
+FullbodyCombinations = FullbodyCombinations(sortedIdx,:);
 uniqueLabels = unique(clusterLabels);
 numCluster = length(uniqueLabels);
 for labelIdx = 1:numCluster
     clusterLabels(clusterLabels == uniqueLabels(labelIdx)) = labelIdx;
 end
-uniqueLabels = unique(clusterLabels);
+uniqueLabels = 1:numCluster;
 
 % cluster collecting
-cellHeadCluster = cell(1, numCluster);
+cellCombinationCluster = cell(1, numCluster);
 for labelIdx = 1:numCluster
-    cellHeadCluster{labelIdx} = headIdxSet(clusterLabels == uniqueLabels(labelIdx));
+    cellCombinationCluster{labelIdx} = ...
+        FullbodyCombinations(clusterLabels == uniqueLabels(labelIdx),:);
 end
 
 %==========================================
-% SOLE HEAD PICK
+% SINGLE HEAD CLUSTER PICK
 %==========================================
-listSoleHeadCluster = false(1, numCluster);
+listSingleHeadCluster = false(1, numCluster);
 for clusterIdx = 1:numCluster
-    curHeadIdxs = headIdxSet(uniqueLabels(clusterIdx) == clusterLabels);
-    numCurHeads = length(curHeadIdxs);
-    
     % heads of same components, or non-overlapped heads -> not sole head cluseter
+    curHeadIdxs = cellCombinationCluster{clusterIdx}(:,2)';
+    numCurHeads = length(curHeadIdxs);
     bSoleHead = true;
-    for head1Idx = 1:numCurHeads-1
-        curHead1Idx = headIdxSet(head1Idx);
-        for head2Idx = head1Idx+1:numCurHeads
-            curHead2Idx = headIdxSet(head2Idx);
-            if listCParts(curHead1Idx).component == listCParts(curHead2Idx).component ...
-                || ~CheckOverlap(listCParts(curHead1Idx).coords, listCParts(curHead2Idx).coords, partOverlapRatio)
+    for h1 = 1:numCurHeads-1
+        for h2 = h1+1:numCurHeads
+            % check component
+            if listCParts(curHeadIdxs(h1)).component == listCParts(curHeadIdxs(h2)).component
+                bSoleHead = false;
+                break;
+            end
+            
+            % check overlap
+            if ~CheckOverlap( ...
+                    listCParts(curHeadIdxs(h1)).coords, ...
+                    listCParts(curHeadIdxs(h2)).coords, ...
+                    0.0)
                 bSoleHead = false;
                 break;
             end
         end
         if ~bSoleHead, break; end
     end    
-    listSoleHeadCluster(clusterIdx) = bSoleHead;
+    listSingleHeadCluster(clusterIdx) = bSoleHead;
 end
 
 end
