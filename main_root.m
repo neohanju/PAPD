@@ -74,12 +74,19 @@ dbstop if error
 % init
 papd_init;
 
+fprintf('=======================================\n');
+timeStart = clock;
+fprintf(['PAPD starts at: ' ...
+    datestr(datenum(0,0,0,timeStart(4),timeStart(5),timeStart(6)),'HH:MM:SS') '\n']);
+fprintf('=======================================\n');
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER AND PRESET, INPUT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % parameters
-PART_NMS_OVERLAP = 0.3;
+ROOT_MAX_OVERLAP = 0.9;
+PART_MAX_OVERLAP = 0.3;
 PART_OCC_OVERLAP = 0.8;
 CLUSTER_OVERLAP  = 0.1;
 SOVLER_TIMELIMIT = 1200;
@@ -119,7 +126,7 @@ for componentIdx = 1:numComponent
     headScores = curComponentScores(typeIdx,:);    
     % nms    
     pickedIdx{componentIdx} = ...
-        curComponentIdx(nms2([headCoords; headScores]', PART_NMS_OVERLAP));
+        curComponentIdx(nms2([headCoords; headScores]', PART_MAX_OVERLAP));
     numRoots = numRoots + length(pickedIdx{componentIdx});
 end 
 
@@ -258,7 +265,7 @@ end
 figure(300); imshow(image, 'border', 'tight');
 cellSolutions = cell(numClusters, 2); % {detection list}{objective value}
 for clusterIdx = 1:numClusters
-    fprintf('==========SOLVING CLUSTER %03d==========\n', clusterIdx);
+    fprintf('----------SOLVING CLUSTER %03d----------\n', clusterIdx);
     if listSingleHeadCluster(clusterIdx)
         % find and save only the combination which has the maximum score
         fprintf('get the detection having the maximum score\n');
@@ -283,7 +290,9 @@ for clusterIdx = 1:numClusters
         % optimize to associate parts
         cellSolutions(clusterIdx,:) = ...
             Optimization_Gurobi(cellListDetections{clusterIdx}, ...
-            listCParts, model, PART_NMS_OVERLAP, PART_OCC_OVERLAP, SOVLER_TIMELIMIT);
+            listCParts, model, ...
+            ROOT_MAX_OVERLAP, PART_MAX_OVERLAP, PART_OCC_OVERLAP, ...
+            SOVLER_TIMELIMIT);
     end
     % DEBUG
     for dIdx = 1:length(cellSolutions{clusterIdx,1})
@@ -345,33 +354,33 @@ hold off;
 %==========================================
 figure(400);
 for c = 1:numClusters
-    subplot(numClusters, floor(numClusters/4)+1, rem(c, 4)+1);
+    subplot(ceil(numClusters/4), 4, c);
     hist(normScores{c});
 end
 
-% %===========================================================
-% % PART NMS DRAWING
-% %===========================================================
-% % draw roots (before nms)
-% roots = coords(1:4,:);
-% rootRects = roots' / imageScale;
-% rootRects(:,3) = rootRects(:,3) - rootRects(:,1) + 1;
-% rootRects(:,4) = rootRects(:,4) - rootRects(:,2) + 1;
-% figure(1000); imshow(image, 'border', 'tight'); hold on;
-% for rectIdx = 1:size(rootRects, 1)
-%     rectangle('Position', rootRects(rectIdx,:), 'EdgeColor', GetColor(CDC, 2));
-% end
-% hold off;
-% 
-% % draw each parts
-% for typeIdx = 1:2
-% % for typeIdx = 1:numPartTypes
-%     curListCParts = CPart.empty();
-%     for componentIdx = 1:numComponent
-%         curListCParts = [curListCParts, listCParts(cellIndexAmongType{typeIdx,componentIdx})];
-%     end
-%     DrawPart(image, curListCParts, CDC, imageScale, typeIdx);
-% end
+%===========================================================
+% PART NMS DRAWING
+%===========================================================
+% draw roots (before nms)
+roots = coords(1:4,:);
+rootRects = roots' / imageScale;
+rootRects(:,3) = rootRects(:,3) - rootRects(:,1) + 1;
+rootRects(:,4) = rootRects(:,4) - rootRects(:,2) + 1;
+figure(1000); imshow(image, 'border', 'tight'); hold on;
+for rectIdx = 1:size(rootRects, 1)
+    rectangle('Position', rootRects(rectIdx,:), 'EdgeColor', GetColor(CDC, 2));
+end
+hold off;
+
+% draw each parts
+for typeIdx = 1:2
+% for typeIdx = 1:numPartTypes
+    curListCParts = CPart.empty();
+    for componentIdx = 1:numComponent
+        curListCParts = [curListCParts, listCParts(cellIndexAmongType{typeIdx,componentIdx})];
+    end
+    DrawPart(image, curListCParts, CDC, imageScale, typeIdx);
+end
 
 % %===========================================================
 % % HEAD CLUSTERING
@@ -405,7 +414,15 @@ end
 % end
 % figure(200); imshow(labelList, 'border', 'tight');
 
-
+fprintf('=======================================\n');
+timeEnd = clock;
+fprintf(['PAPD ends at: ' ...
+    datestr(datenum(0,0,0,timeEnd(4),timeEnd(5),timeEnd(6)),'HH:MM:SS') '\n']);
+timeElapsed = timeEnd - timeStart;
+fprintf(['Total elapsed time: ' datestr(datenum(...
+    timeElapsed(1),timeElapsed(2),timeElapsed(3),timeElapsed(4),timeElapsed(5),timeElapsed(6)), ...
+    'HH:MM:SS') '\n']);
+fprintf('=======================================\n');
 
 %()()
 %('') HAANJU.YOO

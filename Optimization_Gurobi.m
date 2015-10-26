@@ -1,5 +1,5 @@
 function [solution] = Optimization_Gurobi(detections, listCParts, model, ...
-    partOverlapRatio, partOcclusionRatio, timelimit)
+    rootMaxOverlap, partMaxOverlap, partOccMinOverlap, timelimit)
 % quu..__
 %  $$$b  `---.__
 %   "$$b        `--.                          ___.---uuudP
@@ -75,8 +75,8 @@ fprintf('done!!\n');
             fprintf(repmat('\b', 1, nchar));
             nchar = fprintf('%d/%d', curLoop, numLoops);
             % constraints
-            if ~IsCompatible(detections(d1), ...
-                    detections(d2), listCParts, partOverlapRatio)
+            if ~IsCompatible(detections(d1), detections(d2), listCParts, ...
+                    rootMaxOverlap, partMaxOverlap)
                 numConstraints = numConstraints + 1;
                 constraints(numConstraints,:) = [d1, d2];
                 continue;
@@ -86,7 +86,7 @@ fprintf('done!!\n');
             numOccludedParts = NumOccludedParts( ...
                 detections(d1), ...
                 detections(d2), ...
-                listCParts, model, partOcclusionRatio);
+                listCParts, model, partOccMinOverlap);
 
             if 0 == numOccludedParts, continue; end
             numScorePairwise = numScorePairwise + 1;
@@ -147,7 +147,7 @@ fprintf('done!!\n');
         rootScore = listCParts(rootIdx).score;
         matFullbodyNMS(dIdx,:) = [rootCoords, rootScore];
     end
-    pickedIdx = nms2(matFullbodyNMS, partOverlapRatio);
+    pickedIdx = nms2(matFullbodyNMS, partMaxOverlap)';
     pickedScore = matFullbodyNMS(pickedIdx,5);
     
     % feasibility check

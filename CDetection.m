@@ -28,13 +28,18 @@ classdef CDetection
             CD.combination = combination;
             CD.score = score;
         end
-        function bCompatible = IsCompatible(CD1, CD2, listCPart, partOveralapRatio)
+        function bCompatible = IsCompatible(CD1, CD2, listCPart, rootMaxOverlap, partMaxOverlap)
             bCompatible = true;            
             % check common part
             commons = intersect(CD1.combination, CD2.combination);
             if ~isempty(commons(0 < commons))
                 bCompatible = false;
                 return; 
+            end
+            % check root overlap
+            if ~IsCompatible(listCPart(CD1.combination(1)), listCPart(CD1.combination(2)), rootMaxOverlap)
+                bCompatible = false;
+                return;
             end
             % check parts overlap (except root)
             partsForCheck1 = CD1.combination(2:end);
@@ -43,14 +48,14 @@ classdef CDetection
             partsForCheck2 = partsForCheck2(0 < partsForCheck2);
             for p1 = partsForCheck1
                 for p2 = partsForCheck2                 
-                    if ~IsCompatible(listCPart(p1), listCPart(p2), partOveralapRatio)
+                    if ~IsCompatible(listCPart(p1), listCPart(p2), partMaxOverlap)
                         bCompatible = false;
                         return;
                     end
                 end
             end
         end
-        function numOccParts = NumOccludedParts(CD1, CD2, listCPart, model, partOverlapRatio) %, image)
+        function numOccParts = NumOccludedParts(CD1, CD2, listCPart, model, partOccMinOverlap)
             numOccParts = 0;
             % roots are excepted
             occludedType1 = find(0 == CD1.combination); occludedType1(1 == occludedType1) = [];
@@ -68,17 +73,7 @@ classdef CDetection
                     listCPart(det1HeadIdx), occT1, det1Component, model);
                 for visT2 = visibleType2
                     if CheckOverlap(listCPart(CD2.combination(visT2)).coords, ...
-                            estimatedCoords, partOverlapRatio);
-                        
-%                         % debug display
-%                         figure(40); clf; imshow(image, 'border', 'tight');
-%                         hold on;
-%                         rectangle('Position', Coords2Rect(estimatedCoords)/2, 'EdgeColor', [1, 1, 1]);
-%                         rectangle('Position', Coords2Rect(listCPart(CD2.combination(visT2)).coords)/2, ...
-%                             'EdgeColor', [1, 0, 0]);
-%                         hold off;
-%                         pause;
-%                         %%%
+                            estimatedCoords, partOccMinOverlap);
                         numOccParts = numOccParts + 1;
                         break;
                     end
@@ -91,7 +86,7 @@ classdef CDetection
                     listCPart(det2HeadIdx), occT2, det2Component, model);
                 for visT1 = visibleType1
                     if CheckOverlap(listCPart(CD1.combination(visT1)).coords, ...
-                            estimatedCoords, partOverlapRatio);
+                            estimatedCoords, partOccMinOverlap);
                         numOccParts = numOccParts + 1;
                         break;
                     end
