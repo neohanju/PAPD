@@ -53,15 +53,15 @@ end
 
 numConfigurations = size(configurations, 1);
 for c = 1 : model.numcomponents
-    % get part scores only
-    S = scores{c}(:, 4:2:end);    
-%     % get total score (def + filter response) of part_i
-%     tmp = scores{c}(:, 3:end);
-%     S = zeros(size(scores{c}, 1),nParts);
-%     % P(:,i) = 
-%     for i = 1:nParts
-%         S(:,i) = sum(tmp(:,2*i-1:2*i),2);
-%     end
+%     % get part scores only
+%     S = scores{c}(:, 4:2:end);    
+    % get total score (def + filter response) of part_i
+    tmp = scores{c}(:, 3:end);
+    S = zeros(size(scores{c}, 1),nParts);
+    % P(:,i) = 
+    for i = 1:nParts
+        S(:,i) = sum(tmp(:,2*i-1:2*i),2);
+    end
     
     
     % set order
