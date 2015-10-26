@@ -1,43 +1,25 @@
 function [solution] = Optimization_Gurobi(detections, listCParts, model, ...
     rootMaxOverlap, partMaxOverlap, partOccMinOverlap, timelimit)
-% quu..__
-%  $$$b  `---.__
-%   "$$b        `--.                          ___.---uuudP
-%    `$$b           `.__.------.__     __.---'      $$$$"              .
-%      "$b          -'            `-.-'            $$$"              .'|
-%        ".                                       d$"             _.'  |
-%          `.   /                              ..."             .'     |
-%            `./                           ..::-'            _.'       |
-%             /                         .:::-'            .-'         .'
-%            :                          ::''\          _.'            |
-%           .' .-.             .-.           `.      .'               |
-%           : /'$$|           .@"$\           `.   .'              _.-'
-%          .'|$u$$|          |$$,$$|           |  <            _.-'
-%          | `:$$:'          :$$$$$:           `.  `.       .-'
-%          :                  `"--'             |    `-.     \
-%         :##.       ==             .###.       `.      `.    `\
-%         |##:                      :###:        |        >     >
-%         |#'     `..'`..'          `###'        x:      /     /
-%          \                                   xXX|     /    ./
-%           \                                xXXX'|    /   ./
-%           /`-.                                  `.  /   /
-%          :    `-  ...........,                   | /  .'
-%          |         ``:::::::'       .            |<    `.
-%          |             ```          |           x| \ `.:``.
-%          |                         .'    /'   xXX|  `:`M`M':.
-%          |    |                    ;    /:' xXXX'|  -'MMMMM:'
-%          `.  .'                   :    /:'       |-'MMMM.-'
-%           |  |                   .'   /'        .'MMM.-'
-%           `'`'                   :  ,'          |MMM<
-%             |                     `'            |tbap\
-%              \                                  :MM.-'
-%               \                 |              .''
-%                \.               `.            /
-%                 /     .:::::::.. :           /
-%                |     .:::::::::::`.         /
-%                |   .:::------------\       /
-%               /   .''               >::'  /
-%               `',:                 :    .'
+% .__                           __.
+%   \ `\~~---..---~~~~~~--.---~~| /   
+%    `~-.   `                   .~         _____ 
+%        ~.                .--~~    .---~~~    /
+%         / .-.      .-.      |  <~~        __/
+%        |  |_|      |_|       \  \     .--'
+%       /-.      -       .-.    |  \_   \_
+%       \-'   -..-..-    `-'    |    \__  \_ 
+%        `.                     |     _/  _/
+%          ~-                .,-\   _/  _/
+%         /                 -~~~~\ /_  /_
+%        |               /   |    \  \_  \_ 
+%        |   /          /   /      | _/  _/
+%        |  |          |   /    .,-|/  _/ 
+%        )__/           \_/    -~~~| _/
+%          \                      /  \
+%           |           |        /_---` 
+%           \    .______|      ./
+%           (   /        \    /
+%           `--'          /__/
 
 tic;
 clear grb_model grb_params;
@@ -51,7 +33,7 @@ fprintf('construct unary scorses...');
 scoreUnary = [detections.score];
 defaultVisiblePartScore = numPartTypes; % exclude root
 for dIdx = 1:numVariables
-    numVisiblePart = length(find(0 ~= detections(dIdx).combination));
+    numVisiblePart = length(find(0 ~= detections(dIdx).combination(2:end)));
     scoreUnary(dIdx) = scoreUnary(dIdx) + numVisiblePart + defaultVisiblePartScore;
 end
 fprintf('done!!\n');
