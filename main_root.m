@@ -208,9 +208,9 @@ normScores = cell(1, numClusters);
 
 % Run normalization
 fprintf('Normalize the detection scores..');
-for i = 1:numClusters       
-    for j = 1:length(cellListDetections{i})
-        det = cellListDetections{i}(j);        
+for clusterIdx = 1:numClusters       
+    for dIdx = 1:length(cellListDetections{clusterIdx})
+        det = cellListDetections{clusterIdx}(dIdx);        
         % find det's configuration
         conf = zeros(size(det.combination));
         conf(0 ~= det.combination) = 1;
@@ -223,16 +223,32 @@ for i = 1:numClusters
         minVal  = norm(confVal).min;
         if maxVal < det.score
             newScore = 1.0;
-        elseif minVal > det.score;
-            newScore = 0.0;
+%         elseif minVal > det.score;
+%             newScore = 0.0;
         else
             newScore = (det.score - minVal) / (maxVal - minVal);
         end
-        cellListDetections{i}(j).score = newScore;
+        cellListDetections{clusterIdx}(dIdx).score = newScore;
     end    
-    normScores{i} = [cellListDetections{i}.score];
+    normScores{clusterIdx} = [cellListDetections{clusterIdx}.score];
 end
 fprintf('done!\n');
+
+%==========================================
+% DETECTION REMOVING
+%==========================================
+for clusterIdx = 1:numClusters
+    numCurDetections = length(cellListDetections{clusterIdx});
+    deathNote = false(1, numCurDetections);
+    for dIdx = 1:numCurDetections
+        if 0 > cellListDetections{clusterIdx}(dIdx).score
+            deathNote(dIdx) = true;
+        end
+    end
+    aliveIdx = 1:numCurDetections;
+    aliveIdx(deathNote) = [];
+    cellListDetections{clusterIdx} = cellListDetections{clusterIdx}(aliveIdx);
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
