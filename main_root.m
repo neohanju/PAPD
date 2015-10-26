@@ -85,9 +85,9 @@ CLUSTER_OVERLAP  = 0.1;
 SOVLER_TIMELIMIT = 1200;
 
 % load input frame
-INPUT_FILE_NAME = 'img5';
-image      = imread(['data/' INPUT_FILE_NAME '.jpg']);
-imageScale = 2.0;
+INPUT_FILE_NAME    = 'img5';
+image              = imread(['data/' INPUT_FILE_NAME '.jpg']);
+imageScale         = 2.0;
 [imgH, imgW, imgC] = size(image);
 
 % load deformable part model
@@ -100,7 +100,7 @@ numPartTypes = numPartTypes - 1; % exclude "pyramidLevel"
 numComponent = length(unique(coords(end-1,:)));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% PART RESPONSE AND PRE-PROCESSING
+%% PART RESPONSES AND PRE-PROCESSING
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %==========================================
@@ -148,10 +148,10 @@ for componentIdx = 1:numComponent
     for rootIdx = pickedIdx{componentIdx}              
         curPyramidLevel = partscores(end,rootIdx);
         % note that scale and a2p are fit to root scale
-        curScale  = 2^(-(curPyramidLevel-1)/model.interval);
-        curA2p    = model.sbin / curScale;        
-        curScore  = partscores(1:end-1,rootIdx);             
-        typeOffset = 1;
+        curScale      = 2^(-(curPyramidLevel-1)/model.interval);
+        curA2p        = model.sbin / curScale;        
+        curScore      = partscores(1:end-1,rootIdx);             
+        typeOffset    = 1;
         numFullbodies = numFullbodies + 1;
         for typeIdx = 1:numPartTypes
             curCoord = coords(typeOffset:typeOffset+3,rootIdx)';
@@ -182,13 +182,13 @@ fprintf('done!\n');
 %==========================================
 fprintf('Head clustering...');
 [cellCombinationCluster, listSingleHeadCluster] = ...
-    HeadClustering(FullbodyCombinations, listCParts);
-numCluster = length(cellCombinationCluster);
+    ClusterHeads(FullbodyCombinations, listCParts);
+numClusters = length(cellCombinationCluster);
 fprintf('done!\n');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% GENERATE DETECTIONS
+%% CANDIDATE DETECTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 fprintf('Generate Detections...');
@@ -199,80 +199,88 @@ fprintf(['done!\nelapsed time for generating detections: ' ...
     datestr(datenum(0,0,0,0,0,t_d),'HH:MM:SS') '\n']);
 
 
-%===========================================================
-% RE-SCORING THE DETECTION WITH NORMALIZATION (-0.5 ~ 0.5)
-%===========================================================
+%==========================================
+% SCORE NORMALIZATION (s in [0.0, 1.0])
+%==========================================
 load(fullfile('model', 'ConfigurationScoreStats.mat'));
-norm = norm{1};
-scores = [];
+norm = norm{1}; % 'norm' has the maximum and minimum score at each conf.
+normScores = cell(1, numClusters);
 
 % Run normalization
 fprintf('Normalize the detection scores..');
-for i = 1 : length(cellListDetections)        
-    for j = 1 : length(cellListDetections{i})
+for i = 1:numClusters       
+    for j = 1:length(cellListDetections{i})
         det = cellListDetections{i}(j);        
         % find det's configuration
         conf = zeros(size(det.combination));
-        conf((0~=det.combination)) = 1;
-        confStr = [];
-        for k = 1 : length(conf)
-            confStr = [confStr, num2str(conf(k))];
+        conf(0 ~= det.combination) = 1;
+        confStr = '';
+        for k = 1:length(conf)
+            confStr = strcat(confStr, num2str(conf(k)));
         end
-        confStr(1:2) = []; % remove root and head flag (always 0 and 1)
-        confVal = bin2dec(confStr)+1;
-        
-        maxVal = norm(confVal).max;
-        minVal = norm(confVal).min;
-        
-        newScore = (det.score - minVal) / ( maxVal - minVal) - 0.5 ;
+        confVal = bin2dec(confStr(3:end))+1; % remove root and head from the consideration        
+        maxVal  = norm(confVal).max;
+        minVal  = norm(confVal).min;
+        if maxVal < det.score
+            newScore = 1.0;
+        elseif minVal > det.score;
+            newScore = 0.0;
+        else
+            newScore = (det.score - minVal) / (maxVal - minVal);
+        end
         cellListDetections{i}(j).score = newScore;
     end    
-    scores = [scores, cellListDetections{i}.score];
-
+    normScores{i} = [cellListDetections{i}.score];
 end
 fprintf('done!\n');
-hist(scores);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIMIZATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % solve MWCP with the graph
-figure(12321); imshow(image, 'border', 'tight');
-cellSolutions = cell(numCluster, 2); % {detection list}{objective value}
-for clusterIdx = 1:numCluster
-% for clusterIdx = 8
+figure(300); imshow(image, 'border', 'tight');
+cellSolutions = cell(numClusters, 2); % {detection list}{objective value}
+for clusterIdx = 1:numClusters
     fprintf('==========SOLVING CLUSTER %03d==========\n', clusterIdx);
     if listSingleHeadCluster(clusterIdx)
         % find and save only the combination which has the maximum score
+        fprintf('get the detection having the maximum score\n');
         maxScore = 0.0;
-        maxIdx = 0;
-        for cIdx = 1:size(cellListDetections{clusterIdx}, 1)            
-            if cellListDetections{clusterIdx}(cIdx).score < maxScore
+        maxIdx   = 0;
+        for dIdx = 1:length(cellListDetections{clusterIdx})
+            if 0 < length(find(0 == cellListDetections{clusterIdx}(dIdx).combination))
+                % skip non-fullbody
                 continue;
             end
-            maxScore = cellListDetections{clusterIdx}(cIdx).score;
-            maxIdx = cIdx;        
+            if cellListDetections{clusterIdx}(dIdx).score < maxScore
+                continue;
+            end
+            maxScore = cellListDetections{clusterIdx}(dIdx).score;
+            maxIdx   = dIdx;
         end
         if 0 < maxIdx
             cellSolutions{clusterIdx,1} = cellListDetections{clusterIdx}(maxIdx);
             cellSolutions{clusterIdx,2} = maxScore;
         end
     else
+        % optimize to associate parts
         cellSolutions(clusterIdx,:) = ...
             Optimization_Gurobi(cellListDetections{clusterIdx}, ...
             listCParts, model, PART_NMS_OVERLAP, PART_OCC_OVERLAP, SOVLER_TIMELIMIT);
     end
     % DEBUG
     for dIdx = 1:length(cellSolutions{clusterIdx,1})
-        ShowDetection(cellSolutions{clusterIdx,1}(dIdx), listCParts, 0, 0.5, 12321);
+        figure(300); hold on;
+        ShowDetection(cellSolutions{clusterIdx,1}(dIdx), listCParts, 0, 0.5);
+        hold off;
     end
     pause(0.01);
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% REFINEMENT
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% save variables needed for result reconstruction
+save(['data/' INPUT_FILE_NAME '_result.mat'], ...    
+    'cellSolutions', ...
+    'listCParts');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -281,106 +289,107 @@ end
 CDC = CDistinguishableColors();
 
 %==========================================
-% PART NMS DRAWING
+% DRAW DETECTION RESULT
 %==========================================
-% draw roots (before nms)
-roots = coords(1:4,:);
-rootRects = roots' / imageScale;
-rootRects(:,3) = rootRects(:,3) - rootRects(:,1) + 1;
-rootRects(:,4) = rootRects(:,4) - rootRects(:,2) + 1;
-figure(1000); imshow(image, 'border', 'tight'); hold on;
-for rectIdx = 1:size(rootRects, 1)
-    rectangle('Position', rootRects(rectIdx,:), 'EdgeColor', GetColor(CDC, 2));
+% draw full-body combinations (each part)
+figure(300);
+imshow(image, 'border', 'tight');
+figure(301);
+imshow(image, 'border', 'tight');
+resultID = 0;
+for clusterIdx = 1:numClusters
+    for dIdx = 1:length(cellSolutions{clusterIdx,1})
+        resultID = resultID + 1;
+        curColor = GetColor(CDC, resultID);
+        
+        % draw results with distinguishable colors
+        figure(300);
+        hold on;
+        curDetection = cellSolutions{clusterIdx,1}(dIdx);        
+        curRoot = GetBox(listCParts(curDetection.combination(1)))/imageScale;
+        rectangle('Position', curRoot, 'EdgeColor', curColor);
+        curParts = curDetection.combination(0 < curDetection.combination);
+        for pIdx = curParts(2:end)
+            curPart = GetBox(listCParts(pIdx))/imageScale;
+            rectangle('Position', curPart, 'EdgeColor', curColor);
+        end
+        hold off;
+        
+        % draw bounding boxes
+        figure(301);
+        hold on;
+        rectangle('Position', curRoot, 'EdgeColor', [1,0,0]);
+        hold off;
+    end   
 end
 hold off;
 
-% draw each parts
-for typeIdx = 1:2
-% for typeIdx = 1:numPartTypes
-    curListCParts = CPart.empty();
-    for componentIdx = 1:numComponent
-        curListCParts = [curListCParts, listCParts(cellIndexAmongType{typeIdx,componentIdx})];
-    end
-    DrawPart(image, curListCParts, CDC, imageScale, typeIdx);
-end
-
 %==========================================
-% HEAD CLUSTERING
+% SCORE DISTRIBUTION
 %==========================================
-% draw head clustering result
-headMap = zeros(imgH, imgW, 3);
-for clusterIdx = 1:numCluster
-    curHeads = cellHeadCluster{clusterIdx};
-    for headIdx = 1:length(curHeads)
-        curCoords = round(listCParts(curHeads(headIdx)).coords / 2);
-        xRange = curCoords(1):curCoords(3);
-        yRange = curCoords(2):curCoords(4);
-        curColor = GetColor(CDC, clusterIdx);
-        headMap(yRange,xRange,1) = curColor(1);
-        headMap(yRange,xRange,2) = curColor(2);
-        headMap(yRange,xRange,3) = curColor(3);
-    end
+figure(400);
+for c = 1:numClusters
+    subplot(numClusters, floor(numClusters/4)+1, rem(c, 4)+1);
+    hist(normScores{c});
 end
-% for idx = 1:numHeads
-%     curCoords = round(listCParts(headIdxSet(idx)).coords / 2);
-%     xRange = curCoords(1):curCoords(3);
-%     yRange = curCoords(2):curCoords(4);
-%     curColor = GetColor(CDC, clusterLabels(idx));
-%     headMap(yRange,xRange,1) = curColor(1);
-%     headMap(yRange,xRange,2) = curColor(2);
-%     headMap(yRange,xRange,3) = curColor(3);
-% end
-figure(100); imshow(headMap, 'border', 'tight');
 
-% draw cluster label colors
-labelList = zeros(20, 20*numCluster, 3);
-preX = 0;
-for idx = 1:numCluster
-    x = preX+1:preX+20;
-    preX = max(x);
-    curColor = GetColor(CDC, idx);
-    labelList(:,x,1) = curColor(1);
-    labelList(:,x,2) = curColor(2);
-    labelList(:,x,3) = curColor(3);
-end
-figure(200); imshow(labelList, 'border', 'tight');
-
-% %==========================================
-% % FULL-BODY COMBINATIONS
-% %==========================================
-% % draw full-body combinations (each part)
-% figure(98);
-% imshow(image, 'border', 'tight');
-% hold on;
-% BBs = [];
-% for combIdx = 1:size(cellListDetections{curCellIdx},2)
-%     curCombination = cellListDetections{curCellIdx}(combIdx).combination;
-%     curPartBoxes = [];
-%     if length(nonzeros(curCombination)) < 8, continue; end;
-%     for typeIdx = 2:9
-%         curBox = GetBox(listCParts(curCombination(typeIdx))) / imageScale;
-%         rectangle('Position', curBox, 'EdgeColor', GetColor(CDC, typeIdx));
-%         curPartBoxes = [curPartBoxes; curBox];
-%     end
-%     % Save bounding boxes of full body
-%     %   should be modified when consider partial body.
-%     BB = []; % [x y w h]
-%     BB(1) = min(curPartBoxes(:,1));
-%     BB(2) = min(curPartBoxes(:,2));
-%     BB(3) = max(curPartBoxes(:,1) + curPartBoxes(:,3)) - BB(1);
-%     BB(4) = max(curPartBoxes(:,2) + curPartBoxes(:,4)) - BB(2);
-%     BBs = [BBs; BB]; 
+% %===========================================================
+% % PART NMS DRAWING
+% %===========================================================
+% % draw roots (before nms)
+% roots = coords(1:4,:);
+% rootRects = roots' / imageScale;
+% rootRects(:,3) = rootRects(:,3) - rootRects(:,1) + 1;
+% rootRects(:,4) = rootRects(:,4) - rootRects(:,2) + 1;
+% figure(1000); imshow(image, 'border', 'tight'); hold on;
+% for rectIdx = 1:size(rootRects, 1)
+%     rectangle('Position', rootRects(rectIdx,:), 'EdgeColor', GetColor(CDC, 2));
 % end
 % hold off;
 % 
-% % draw full-body combinations (bounding box)
-% figure(99);
-% imshow(image, 'border', 'tight');
-% hold on;
-% for combIdx = 1:size(BBs,1)    
-%     rectangle('Position', BBs(combIdx,:), 'EdgeColor', GetColor(CDC, 10));
+% % draw each parts
+% for typeIdx = 1:2
+% % for typeIdx = 1:numPartTypes
+%     curListCParts = CPart.empty();
+%     for componentIdx = 1:numComponent
+%         curListCParts = [curListCParts, listCParts(cellIndexAmongType{typeIdx,componentIdx})];
+%     end
+%     DrawPart(image, curListCParts, CDC, imageScale, typeIdx);
 % end
-% hold off;
+
+% %===========================================================
+% % HEAD CLUSTERING
+% %===========================================================
+% % draw head clustering result
+% headMap = zeros(imgH, imgW, 3);
+% for clusterIdx = 1:numClusters
+%     curHeads = cellCombinationCluster{clusterIdx};
+%     for headIdx = 1:length(curHeads)
+%         curCoords = round(listCParts(curHeads(headIdx)).coords / 2);
+%         xRange = curCoords(1):curCoords(3);
+%         yRange = curCoords(2):curCoords(4);
+%         curColor = GetColor(CDC, clusterIdx);
+%         headMap(yRange,xRange,1) = curColor(1);
+%         headMap(yRange,xRange,2) = curColor(2);
+%         headMap(yRange,xRange,3) = curColor(3);
+%     end
+% end
+% figure(100); imshow(headMap, 'border', 'tight');
+% 
+% % draw cluster label colors
+% labelList = zeros(20, 20*numClusters, 3);
+% preX = 0;
+% for idx = 1:numClusters
+%     x = preX+1:preX+20;
+%     preX = max(x);
+%     curColor = GetColor(CDC, idx);
+%     labelList(:,x,1) = curColor(1);
+%     labelList(:,x,2) = curColor(2);
+%     labelList(:,x,3) = curColor(3);
+% end
+% figure(200); imshow(labelList, 'border', 'tight');
+
+
 
 %()()
 %('') HAANJU.YOO

@@ -98,21 +98,14 @@ classdef CDetection
                 end
             end
         end
-        function ShowDetection(CD, listCPart, image, rescale, figID)
-            if nargin < 5
-                figure;
-            else
-                figure(figID);
-            end
+        function ShowDetection(CD, listCPart, image, rescale)
             if 0 ~= image, imshow(image, 'border', 'tight'); end
-            if nargin < 4, rescale = 1.0; end
-            hold on;
+            if nargin < 4, rescale = 1.0; end            
             for pIdx = CD.combination(0 < CD.combination)
                 curColor = [1, 1, 1];
                 if 2 == listCPart(pIdx).type, curColor = [1, 0, 0]; end
                 rectangle('Position', rescale*Coords2Rect(listCPart(pIdx).coords), 'EdgeColor', curColor);
-            end
-            hold off;
+            end           
         end
     end
 end

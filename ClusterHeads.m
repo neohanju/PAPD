@@ -1,5 +1,5 @@
 function [cellCombinationCluster, listSingleHeadCluster] = ...
-    HeadClustering(FullbodyCombinations, listCParts)
+    ClusterHeads(FullbodyCombinations, listCParts)
 % <description>
 % - clustering heads with connectivity by parts overlap
 % <input>
