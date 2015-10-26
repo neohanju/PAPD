@@ -34,7 +34,7 @@ scoreUnary = [detections.score];
 defaultVisiblePartScore = numPartTypes; % exclude root
 for dIdx = 1:numVariables
     numVisiblePart = length(find(0 ~= detections(dIdx).combination(2:end)));
-    scoreUnary(dIdx) = scoreUnary(dIdx) + numVisiblePart + defaultVisiblePartScore;
+    scoreUnary(dIdx) = scoreUnary(dIdx) + numVisiblePart - defaultVisiblePartScore;
 end
 fprintf('done!!\n');
 
@@ -44,11 +44,11 @@ fprintf('done!!\n');
     %==========================================
     % construct Q (pairwise score)
     fprintf('construct Q and constraints...');
-    scorePairwise = zeros(numVariables*(numVariables+1)/2, 3);
+    scorePairwise = zeros(numVariables*(numVariables-1)/2, 3);
     constraints = zeros(numVariables^2, 2);
     numScorePairwise = 0;
     numConstraints = 0;
-    numLoops = numVariables*(numVariables+1)/2;
+    numLoops = numVariables*(numVariables-1)/2;
     curLoop = 0;
     nchar = fprintf('%d/%d', curLoop, numLoops);
     for d1 = 1:numVariables-1
@@ -85,7 +85,7 @@ fprintf('done!!\n');
     %==========================================    
     % set objectives
     if 0 < numScorePairwise
-        scores = [scorePairwise(:,3); scorePairwise(:,3)];
+        scores = [scorePairwise(:,3); scorePairwise(:,3)]/2.0; % important!!
         rowIndices = [scorePairwise(:,1); scorePairwise(:,2)];
         colIndices = [scorePairwise(:,2); scorePairwise(:,1)];
         if max(rowIndices) < numVariables || max(colIndices) < numVariables
