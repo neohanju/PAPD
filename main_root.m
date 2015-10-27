@@ -74,9 +74,6 @@ dbstop if error
 % init
 papd_init;
 
-% modes
-BATCH_GUROBI = false;
-
 fprintf('=======================================\n');
 timeStart = clock;
 fprintf(['PAPD starts at: ' ...
@@ -290,22 +287,12 @@ for clusterIdx = 1:numClusters
             cellSolutions{clusterIdx,2} = maxScore;
         end
     else
-        if BATCH_GUROBI
-            clear grb_model;
-            load(sprintf('data/%s_grb_model_%03d.mat'));
-            [cellSolutions(clusterIdx,:)] = ...
-                Optimization_Gurobi_batch(cellListDetections{clusterIdx}, ...
-                grb_model, SOVLER_TIMELIMIT);
-        else
-            % optimize to associate parts
-            [cellSolutions(clusterIdx,:), grb_model] = ...
-                Optimization_Gurobi(cellListDetections{clusterIdx}, ...
-                listCParts, model, ...
-                ROOT_MAX_OVERLAP, PART_MAX_OVERLAP, PART_OCC_OVERLAP, ...
-                SOVLER_TIMELIMIT);
-            save(sprintf('data/%s_grb_model_%03d.mat', INPUT_FILE_NAME, clusterIdx), 'grb_model');
-            clear grb_model;
-        end
+        % optimize to associate parts
+        cellSolutions(clusterIdx,:) = ...
+            Optimization_Gurobi(cellListDetections{clusterIdx}, ...
+            listCParts, model, ...
+            ROOT_MAX_OVERLAP, PART_MAX_OVERLAP, PART_OCC_OVERLAP, ...
+            SOVLER_TIMELIMIT);
     end
     % DEBUG
     for dIdx = 1:length(cellSolutions{clusterIdx,1})
