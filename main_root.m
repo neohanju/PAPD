@@ -74,6 +74,9 @@ dbstop if error
 % init
 papd_init;
 
+% mode
+BATCH_GUROBI = false;
+
 fprintf('=======================================\n');
 timeStart = clock;
 fprintf(['PAPD starts at: ' ...

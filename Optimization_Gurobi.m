@@ -33,7 +33,7 @@ fprintf('construct unary scorses...');
 scoreUnary = [detections.score];
 defaultVisiblePartScore = numPartTypes; % exclude root
 for dIdx = 1:numVariables
-    numVisiblePart = length(find(0 ~= detections(dIdx).combination));
+    numVisiblePart = length(find(0 ~= detections(dIdx).combination(2:end)));
     scoreUnary(dIdx) = scoreUnary(dIdx) + numVisiblePart - defaultVisiblePartScore;
 end
 fprintf('done!!\n');
@@ -54,9 +54,11 @@ nchar = fprintf('%d/%d', curLoop, numLoops);
 for d1 = 1:numVariables-1
     for d2 = d1+1:numVariables
         curLoop = curLoop + 1;
-        fprintf(repmat('\b', 1, nchar));
-        nchar = fprintf('%d/%d', curLoop, numLoops);
-        % constraints
+        if mod(curLoop, 100) == 0
+            fprintf(repmat('\b', 1, nchar));
+            nchar = fprintf('%d/%d', curLoop, numLoops);
+        end
+        % constraints        
         if ~IsCompatible(detections(d1), detections(d2), listCParts, ...
                 rootMaxOverlap, partMaxOverlap)
             numConstraints = numConstraints + 1;

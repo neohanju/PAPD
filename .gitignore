@@ -227,7 +227,8 @@ papd_init.m
 ## GUROBI
 #############
 *.lp
-data/*grb_model.mat
+data/*grb_model*.mat
+data/*result*.mat
 
 #()()
 #('')HAANJU.YOO
