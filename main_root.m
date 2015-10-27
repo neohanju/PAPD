@@ -74,8 +74,6 @@ dbstop if error
 % init
 papd_init;
 
-% mode
-BATCH_GUROBI = false;
 
 fprintf('=======================================\n');
 timeStart = clock;
@@ -293,7 +291,7 @@ for clusterIdx = 1:numClusters
     else
         if BATCH_GUROBI
             clear grb_model;
-            load(sprintf('data/%s_grb_model_%03d.mat'));
+            load(sprintf('data/%s_grb_model_%03d.mat', INPUT_FILE_NAME, clusterIdx));
             [cellSolutions(clusterIdx,:)] = ...
                 Optimization_Gurobi_batch(cellListDetections{clusterIdx}, ...
                 grb_model, SOVLER_TIMELIMIT);
@@ -403,7 +401,7 @@ for clusterIdx = 1:numClusters
         headMap(yRange,xRange,3) = curColor(3);
     end
 end
-figure(400); imshow(headMap, 'border', 'tight');
+figure(500); imshow(headMap, 'border', 'tight');
 
 % draw cluster label colors
 labelList = zeros(20, 20*numClusters, 3);
@@ -416,7 +414,7 @@ for idx = 1:numClusters
     labelList(:,x,2) = curColor(2);
     labelList(:,x,3) = curColor(3);
 end
-figure(401); imshow(labelList, 'border', 'tight');
+figure(501); imshow(labelList, 'border', 'tight');
 
 fprintf('=======================================\n');
 timeEnd = clock;
