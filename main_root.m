@@ -228,13 +228,14 @@ for clusterIdx = 1:numClusters
         confVal = bin2dec(confStr(3:end))+1; % remove root and head from the consideration        
         maxVal  = norm(confVal).max;
         minVal  = norm(confVal).min;
-        if maxVal < det.score
-            newScore = 1.0;
+%         if maxVal < det.score
+%             newScore = 1.0;
 %         elseif minVal > det.score;
 %             newScore = 0.0;
-        else
-            newScore = (det.score - minVal) / (maxVal - minVal);
-        end
+%         else
+%             newScore = (det.score - minVal) / (maxVal - minVal);
+%         end
+        newScore = (det.score - minVal) / (maxVal - minVal);
         cellListDetections{clusterIdx}(dIdx).score = newScore;
     end    
     normScores{clusterIdx} = [cellListDetections{clusterIdx}.score];
@@ -287,12 +288,22 @@ for clusterIdx = 1:numClusters
             cellSolutions{clusterIdx,2} = maxScore;
         end
     else
-        % optimize to associate parts
-        cellSolutions(clusterIdx,:) = ...
-            Optimization_Gurobi(cellListDetections{clusterIdx}, ...
-            listCParts, model, ...
-            ROOT_MAX_OVERLAP, PART_MAX_OVERLAP, PART_OCC_OVERLAP, ...
-            SOVLER_TIMELIMIT);
+        if BATCH_GUROBI
+            clear grb_model;
+            load(sprintf('data/%s_grb_model_%03d.mat'));
+            [cellSolutions(clusterIdx,:)] = ...
+                Optimization_Gurobi_batch(cellListDetections{clusterIdx}, ...
+                grb_model, SOVLER_TIMELIMIT);
+        else
+            % optimize to associate parts
+            [cellSolutions(clusterIdx,:), grb_model] = ...
+                Optimization_Gurobi(cellListDetections{clusterIdx}, ...
+                listCParts, model, ...
+                ROOT_MAX_OVERLAP, PART_MAX_OVERLAP, PART_OCC_OVERLAP, ...
+                SOVLER_TIMELIMIT);
+            save(sprintf('data/%s_grb_model_%03d.mat', INPUT_FILE_NAME, clusterIdx), 'grb_model');
+            clear grb_model;
+        end
     end
     % DEBUG
     for dIdx = 1:length(cellSolutions{clusterIdx,1})
@@ -359,7 +370,7 @@ for c = 1:numClusters
 end
 
 %===========================================================
-% PART NMS DRAWING
+% ROOTS DRAWING
 %===========================================================
 % draw roots (before nms)
 roots = coords(1:4,:);
@@ -372,47 +383,37 @@ for rectIdx = 1:size(rootRects, 1)
 end
 hold off;
 
-% draw each parts
-for typeIdx = 1:2
-% for typeIdx = 1:numPartTypes
-    curListCParts = CPart.empty();
-    for componentIdx = 1:numComponent
-        curListCParts = [curListCParts, listCParts(cellIndexAmongType{typeIdx,componentIdx})];
+%===========================================================
+% HEAD CLUSTERING
+%===========================================================
+% draw head clustering result
+headMap = zeros(imgH, imgW, 3);
+for clusterIdx = 1:numClusters
+    curHeads = cellCombinationCluster{clusterIdx};
+    for headIdx = 1:length(curHeads)
+        curCoords = round(listCParts(curHeads(headIdx)).coords / 2);
+        xRange = curCoords(1):curCoords(3);
+        yRange = curCoords(2):curCoords(4);
+        curColor = GetColor(CDC, clusterIdx);
+        headMap(yRange,xRange,1) = curColor(1);
+        headMap(yRange,xRange,2) = curColor(2);
+        headMap(yRange,xRange,3) = curColor(3);
     end
-    DrawPart(image, curListCParts, CDC, imageScale, typeIdx);
 end
+figure(400); imshow(headMap, 'border', 'tight');
 
-% %===========================================================
-% % HEAD CLUSTERING
-% %===========================================================
-% % draw head clustering result
-% headMap = zeros(imgH, imgW, 3);
-% for clusterIdx = 1:numClusters
-%     curHeads = cellCombinationCluster{clusterIdx};
-%     for headIdx = 1:length(curHeads)
-%         curCoords = round(listCParts(curHeads(headIdx)).coords / 2);
-%         xRange = curCoords(1):curCoords(3);
-%         yRange = curCoords(2):curCoords(4);
-%         curColor = GetColor(CDC, clusterIdx);
-%         headMap(yRange,xRange,1) = curColor(1);
-%         headMap(yRange,xRange,2) = curColor(2);
-%         headMap(yRange,xRange,3) = curColor(3);
-%     end
-% end
-% figure(100); imshow(headMap, 'border', 'tight');
-% 
-% % draw cluster label colors
-% labelList = zeros(20, 20*numClusters, 3);
-% preX = 0;
-% for idx = 1:numClusters
-%     x = preX+1:preX+20;
-%     preX = max(x);
-%     curColor = GetColor(CDC, idx);
-%     labelList(:,x,1) = curColor(1);
-%     labelList(:,x,2) = curColor(2);
-%     labelList(:,x,3) = curColor(3);
-% end
-% figure(200); imshow(labelList, 'border', 'tight');
+% draw cluster label colors
+labelList = zeros(20, 20*numClusters, 3);
+preX = 0;
+for idx = 1:numClusters
+    x = preX+1:preX+20;
+    preX = max(x);
+    curColor = GetColor(CDC, idx);
+    labelList(:,x,1) = curColor(1);
+    labelList(:,x,2) = curColor(2);
+    labelList(:,x,3) = curColor(3);
+end
+figure(401); imshow(labelList, 'border', 'tight');
 
 fprintf('=======================================\n');
 timeEnd = clock;
@@ -423,6 +424,5 @@ fprintf(['Total elapsed time: ' datestr(datenum(...
     timeElapsed(1),timeElapsed(2),timeElapsed(3),timeElapsed(4),timeElapsed(5),timeElapsed(6)), ...
     'HH:MM:SS') '\n']);
 fprintf('=======================================\n');
-
 %()()
 %('') HAANJU.YOO
