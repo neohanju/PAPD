@@ -37,7 +37,7 @@ classdef CDetection
                 return; 
             end
             % check root overlap
-            if ~IsCompatible(listCPart(CD1.combination(1)), listCPart(CD1.combination(2)), rootMaxOverlap)
+            if ~IsCompatible(listCPart(CD1.combination(1)), listCPart(CD2.combination(1)), rootMaxOverlap)
                 bCompatible = false;
                 return;
             end
