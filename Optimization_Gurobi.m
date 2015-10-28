@@ -34,8 +34,11 @@ scoreUnary = [detections.score];
 defaultVisiblePartScore = numPartTypes; % exclude root
 for dIdx = 1:numVariables
     numVisiblePart = length(find(0 ~= detections(dIdx).combination(2:end)));
-    scoreUnary(dIdx) = scoreUnary(dIdx) ...         % filter score
-        + numVisiblePart - defaultVisiblePartScore; % occlusion penalty
+%     scoreUnary(dIdx) = scoreUnary(dIdx) ...         % filter score
+%         + numVisiblePart - defaultVisiblePartScore; % occlusion penalty
+    scoreUnary(dIdx) = ...
+        scoreUnary(dIdx) * (numVisiblePart/numPartTypes)^2 ... % filter score
+        + numVisiblePart - defaultVisiblePartScore;            % occlusion penalty
 end
 fprintf('done!!\n');
 
@@ -88,6 +91,7 @@ for d1 = 1:numVariables-1
 end
 constraints = constraints(1:numConstraints,:);
 scorePairwise = scorePairwise(1:numScorePairwise,:);
+fprintf(repmat('\b', 1, nchar));
 fprintf('...done!!\n');
 fprintf('%d constraints / %d pairwise scores\n', numConstraints, numScorePairwise);
 
@@ -104,8 +108,12 @@ if 0 < numScorePairwise
         colIndices(end+1) = numVariables;
         scores(end+1) = 0.0;
     end
-    grb_model.Q = sparse(rowIndices, colIndices, scores);
+else
+    rowIndices = numVariables;
+    colIndices = numVariables;
+    scores = 0.0;
 end
+grb_model.Q = sparse(rowIndices, colIndices, scores);
 grb_model.obj = scoreUnary;
 grb_model.modelsense = 'max';
 clear rowIndices colIndices scores scoreUnary scorePairwise;
@@ -216,22 +224,19 @@ solution{1} = CDetection.empty();
 solution{2} = grb_result.objval;
 numDetectionInSolution = 0;
 
-% DEBUG
-solutionIdx = [];
+solutionIdx = []; % DEBUG
 for v = 1:numVariables
     if 0 == grb_result.x(v), continue; end
     numDetectionInSolution = numDetectionInSolution + 1;
     solution{1}(numDetectionInSolution) = detections(v);
     
-    % DEBUG
-    solutionIdx = [solutionIdx, v];
+    solutionIdx = [solutionIdx, v]; % DEBUG
 end
+solutionIdx % DEBUG
+
 % catch gurobiError
 %     fprintf('Error reported\n');
 % end
-
-% DEBUG
-solutionIdx
 
 end
 

@@ -188,6 +188,9 @@ fprintf('done!\n');
 %% CANDIDATE DETECTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%==========================================
+% GENERATE DETECTIONS
+%==========================================
 fprintf('Generate Detections...');
 tic;
 cellListDetections = GenerateDetections(listCParts, cellCombinationCluster, PART_OCC_OVERLAP);
@@ -196,63 +199,66 @@ fprintf(['done!\nelapsed time for generating detections: ' ...
     datestr(datenum(0,0,0,0,0,t_d),'HH:MM:SS') '\n']);
 
 %==========================================
-% SCORE NORMALIZATION (s in [0.0, 1.0])
+% CLASSIFY DETECTIONS
 %==========================================
-load(fullfile('model', 'ConfigurationScoreStats.mat'));
-norm = norm{1}; % 'norm' has the maximum and minimum score at each conf.
-normScores = cell(1, numClusters);
+% SVM
+load(fullfile('model', 'ConfigurationClassifiers.mat'));
+cellListDetections = ClassifyDetetions_SVM(cellListDetections, SVMModels);
 
-% Run normalization
-fprintf('Normalize the detection scores..');
-for clusterIdx = 1:numClusters       
-    for dIdx = 1:length(cellListDetections{clusterIdx})
-        det = cellListDetections{clusterIdx}(dIdx);        
-        % find det's configuration
-        conf = zeros(size(det.combination));
-        conf(0 ~= det.combination) = 1;
-        confStr = '';
-        for k = 1:length(conf)
-            confStr = strcat(confStr, num2str(conf(k)));
-        end
-        confVal = bin2dec(confStr(3:end))+1; % remove root and head from the consideration        
-        maxVal  = norm(confVal).max;
-        minVal  = norm(confVal).min;
-%         if maxVal < det.score
-%             newScore = 1.0;
-%         elseif minVal > det.score;
-%             newScore = 0.0;
-%         else
-%             newScore = (det.score - minVal) / (maxVal - minVal);
+% % thresholding
+% load(fullfile('model', 'ConfigurationThresholds.mat'));
+% cellListDetections = ClassifyDetetions_Threshold(cellListDetections, cellThresholds);
+
+% %==========================================
+% % NORMALIZE SCORES
+% %==========================================
+% % score normalization (mean - 3 std ~ mean + 3 std -> 0 to 1)
+% fprintf('score normalization...');
+% normScores = cell(numClusters, 1);
+% for clusterIdx = 1:numClusters
+%     numCurDetections = length(cellListDetections{clusterIdx});
+%     for dIdx = 1:length(cellListDetections{clusterIdx})        
+%         curTotalScore  = cellListDetections{clusterIdx}(dIdx).score;
+%         curFullScores  = cellListDetections{clusterIdx}(dIdx).fullScores;
+%         % configuration
+%         curCombination = cellListDetections{clusterIdx}(dIdx).combination;
+%         scoreIdx = find(0 < curCombination); 
+%         scoreIdx(1 == scoreIdx) = []; % except root
+%         curConfigurationString = repmat('0', 1, numPartTypes);
+%         curConfigurationString(scoreIdx) = '1';        
+%         configurationIdx = bin2dec(curConfigurationString(3:end))+1; % except head and root       
+%         % subtract root filter response
+%         curTotalScore = curTotalScore - curFullScores(1); 
+%         newScore = (curTotalScore - positiveScoreMean(configurationIdx)) ...
+%             / (6*positiveScoreStd(configurationIdx)) + 0.5;        
+%         newScore = newScore + curFullScores(1);
+%         % add root filter response
+%         cellListDetections{clusterIdx}(dIdx).score = newScore;
+%     end    
+%     normScores{clusterIdx} = [cellListDetections{clusterIdx}.score];
+% end
+% % remove detections having negative scores
+% numDeletedDetections = 0;
+% for clusterIdx = 1:numClusters
+%     numCurDetections = length(cellListDetections{clusterIdx});
+%     deathNote = false(1, numCurDetections);
+%     for dIdx = 1:numCurDetections
+%         if 0 > cellListDetections{clusterIdx}(dIdx).score
+%             deathNote(dIdx) = true;
+%             numDeletedDetections = numDeletedDetections + 1;
 %         end
-        newScore = (det.score - minVal) / (maxVal - minVal);
-        cellListDetections{clusterIdx}(dIdx).score = newScore;
-    end    
-    normScores{clusterIdx} = [cellListDetections{clusterIdx}.score];
-end
-fprintf('done!\n');
-
-%==========================================
-% DETECTION REMOVING
-%==========================================
-for clusterIdx = 1:numClusters
-    numCurDetections = length(cellListDetections{clusterIdx});
-    deathNote = false(1, numCurDetections);
-    for dIdx = 1:numCurDetections
-        if 0 > cellListDetections{clusterIdx}(dIdx).score
-            deathNote(dIdx) = true;
-        end
-    end
-    aliveIdx = 1:numCurDetections;
-    aliveIdx(deathNote) = [];
-    cellListDetections{clusterIdx} = cellListDetections{clusterIdx}(aliveIdx);
-end
-
+%     end
+%     aliveIdx = 1:numCurDetections;
+%     aliveIdx(deathNote) = [];
+%     cellListDetections{clusterIdx} = cellListDetections{clusterIdx}(aliveIdx);
+% end
+% fprintf('done!\nthe number of deleted detections: %d\n', numDeletedDetections);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIMIZATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % solve MWCP with the graph
-figure(300); imshow(image, 'border', 'tight');
+figDebug = figure(100); imshow(image, 'border', 'tight');
 cellSolutions = cell(numClusters, 2); % {detection list}{objective value}
 for clusterIdx = 1:numClusters
     fprintf('----------SOLVING CLUSTER %03d----------\n', clusterIdx);
@@ -296,7 +302,7 @@ for clusterIdx = 1:numClusters
     end
     % DEBUG
     for dIdx = 1:length(cellSolutions{clusterIdx,1})
-        figure(300); hold on;
+        figure(figDebug); hold on;
         ShowDetection(cellSolutions{clusterIdx,1}(dIdx), listCParts, 0, 0.5);
         hold off;
     end
@@ -317,9 +323,9 @@ CDC = CDistinguishableColors();
 % DRAW DETECTION RESULT
 %==========================================
 % draw full-body combinations (each part)
-figure(300);
+figResult = figure(10);
 imshow(image, 'border', 'tight');
-figure(301);
+figResultBB = figure(11);
 imshow(image, 'border', 'tight');
 resultID = 0;
 for clusterIdx = 1:numClusters
@@ -328,7 +334,7 @@ for clusterIdx = 1:numClusters
         curColor = GetColor(CDC, resultID);
         
         % draw results with distinguishable colors
-        figure(300);
+        figure(figResult);
         hold on;
         curDetection = cellSolutions{clusterIdx,1}(dIdx);        
         curRoot = GetBox(listCParts(curDetection.combination(1)))/imageScale;
@@ -341,22 +347,13 @@ for clusterIdx = 1:numClusters
         hold off;
         
         % draw bounding boxes
-        figure(301);
+        figure(figResultBB);
         hold on;
         rectangle('Position', curRoot, 'EdgeColor', [1,0,0]);
         hold off;
     end   
 end
 hold off;
-
-%==========================================
-% SCORE DISTRIBUTION
-%==========================================
-figure(400);
-for c = 1:numClusters
-    subplot(ceil(numClusters/4), 4, c);
-    hist(normScores{c});
-end
 
 %===========================================================
 % ROOTS DRAWING
@@ -366,44 +363,55 @@ roots = coords(1:4,:);
 rootRects = roots' / imageScale;
 rootRects(:,3) = rootRects(:,3) - rootRects(:,1) + 1;
 rootRects(:,4) = rootRects(:,4) - rootRects(:,2) + 1;
-figure(1000); imshow(image, 'border', 'tight'); hold on;
+figure(20); imshow(image, 'border', 'tight'); hold on;
 for rectIdx = 1:size(rootRects, 1)
     rectangle('Position', rootRects(rectIdx,:), 'EdgeColor', GetColor(CDC, 2));
 end
 hold off;
 
-%===========================================================
-% HEAD CLUSTERING
-%===========================================================
-% draw head clustering result
-headMap = zeros(imgH, imgW, 3);
-for clusterIdx = 1:numClusters
-    curHeads = cellCombinationCluster{clusterIdx};
-    for headIdx = 1:length(curHeads)
-        curCoords = round(listCParts(curHeads(headIdx)).coords / 2);
-        xRange = curCoords(1):curCoords(3);
-        yRange = curCoords(2):curCoords(4);
-        curColor = GetColor(CDC, clusterIdx);
-        headMap(yRange,xRange,1) = curColor(1);
-        headMap(yRange,xRange,2) = curColor(2);
-        headMap(yRange,xRange,3) = curColor(3);
-    end
-end
-figure(500); imshow(headMap, 'border', 'tight');
+% %==========================================
+% % SCORE DISTRIBUTION
+% %==========================================
+% figure(30);
+% for c = 1:numClusters
+%     subplot(ceil(numClusters/4), 4, c);
+%     hist(normScores{c});
+% end
 
-% draw cluster label colors
-labelList = zeros(20, 20*numClusters, 3);
-preX = 0;
-for idx = 1:numClusters
-    x = preX+1:preX+20;
-    preX = max(x);
-    curColor = GetColor(CDC, idx);
-    labelList(:,x,1) = curColor(1);
-    labelList(:,x,2) = curColor(2);
-    labelList(:,x,3) = curColor(3);
-end
-figure(501); imshow(labelList, 'border', 'tight');
+% %===========================================================
+% % HEAD CLUSTERING
+% %===========================================================
+% % draw head clustering result
+% headMap = zeros(imgH, imgW, 3);
+% for clusterIdx = 1:numClusters
+%     curHeads = cellCombinationCluster{clusterIdx};
+%     for headIdx = 1:length(curHeads)
+%         curCoords = round(listCParts(curHeads(headIdx)).coords / 2);
+%         xRange = curCoords(1):curCoords(3);
+%         yRange = curCoords(2):curCoords(4);
+%         curColor = GetColor(CDC, clusterIdx);
+%         headMap(yRange,xRange,1) = curColor(1);
+%         headMap(yRange,xRange,2) = curColor(2);
+%         headMap(yRange,xRange,3) = curColor(3);
+%     end
+% end
+% figure(31); imshow(headMap, 'border', 'tight');
+% % draw cluster label colors
+% labelList = zeros(20, 20*numClusters, 3);
+% preX = 0;
+% for idx = 1:numClusters
+%     x = preX+1:preX+20;
+%     preX = max(x);
+%     curColor = GetColor(CDC, idx);
+%     labelList(:,x,1) = curColor(1);
+%     labelList(:,x,2) = curColor(2);
+%     labelList(:,x,3) = curColor(3);
+% end
+% figure(131); imshow(labelList, 'border', 'tight');
 
+%===========================================================
+% END-UP MESSAGE
+%===========================================================
 fprintf('=======================================\n');
 timeEnd = clock;
 fprintf(['PAPD ends at: ' ...

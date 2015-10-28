@@ -113,15 +113,15 @@ for clusterIdx = 1:numCluster
         % make CDetection instance
         for dIdx = 1:curNumConfiguration
             curGeneratedCombination = generatedCombinations(dIdx,:);
-            curListCParts = ...
-                listCParts(curGeneratedCombination(0 ~= curGeneratedCombination));
-            curScore = sum([curListCParts.score]);
-            if length(curListCParts) < length(curCombination)
-                curScore = curScore - listCParts(curGeneratedCombination(1)).score; 
-            end
+            curFullScores = zeros(1, numPartTypes);
+            for tIdx = 1:numPartTypes
+                if 0 == curGeneratedCombination(tIdx), continue; end
+                curFullScores(tIdx) = listCParts(curGeneratedCombination(tIdx)).score;
+            end           
+            curScore = sum(curFullScores);            
             numCurClusterDetections = numCurClusterDetections + 1;
             cellListDetections{clusterIdx}(numCurClusterDetections) = ...
-                CDetection(curGeneratedCombination, curCombination, curScore);
+                CDetection(curGeneratedCombination, curCombination, curFullScores, curScore);
         end
     end
 end

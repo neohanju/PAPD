@@ -22,12 +22,14 @@ classdef CDetection
     properties
         combination
         fullCombination
+        fullScores
         score
     end
     methods
-        function CD = CDetection(combination, fullCombination, score)
+        function CD = CDetection(combination, fullCombination, fullScores, score)
             CD.combination = combination;
             CD.fullCombination = fullCombination;
+            CD.fullScores = fullScores;
             CD.score = score;
         end
         function bCompatible = IsCompatible(CD1, CD2, listCPart, rootMaxOverlap, partMaxOverlap)                
