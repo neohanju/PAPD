@@ -89,6 +89,7 @@ for c = 1 : model.numcomponents
     % (지금은 positive sample만 고려함.)
     %---------------------------------------------------    
     sz = size(posScores, 1);
+    sz_neg = size(negScores, 1);
     normParam{c} = [];
     for confIdx = 1 : numConfigurations
         curConf = configurations(confIdx, :);
@@ -99,14 +100,22 @@ for c = 1 : model.numcomponents
         scoreMax = max(scoreSum);
         scoreMin = min(scoreSum);        
         normParam{c}(confIdx).max = scoreMax;
-        normParam{c}(confIdx).min = scoreMin;                
+        normParam{c}(confIdx).min = scoreMin; 
+        
+        
+        % positive & negative scores
+        curPosScore{confIdx} = sum(curConfMat.*posScores, 2);
+        curNegConfMat = repmat(curConf, sz_neg, 1);
+        curNegScore{confIdx} = sum(curNegConfMat.*negScores, 2);
+        %
     end
 end
 
 %==========================
 % SAVE NORMALIZATION PARAM
 %==========================
-save(fullfile(model_path, 'ConfigurationScoreStats.mat'),'normParam');
+save(fullfile(model_path, 'ConfigurationScoreStats.mat'),'normParam', ...
+    'curPosScore', 'curNegScore');
 
 
 
