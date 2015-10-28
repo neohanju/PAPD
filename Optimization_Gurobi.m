@@ -34,7 +34,8 @@ scoreUnary = [detections.score];
 defaultVisiblePartScore = numPartTypes; % exclude root
 for dIdx = 1:numVariables
     numVisiblePart = length(find(0 ~= detections(dIdx).combination(2:end)));
-    scoreUnary(dIdx) = scoreUnary(dIdx) + numVisiblePart - defaultVisiblePartScore;
+    scoreUnary(dIdx) = scoreUnary(dIdx) ...         % filter score
+        + numVisiblePart - defaultVisiblePartScore; % occlusion penalty
 end
 fprintf('done!!\n');
 
@@ -214,14 +215,23 @@ solution = cell(1, 2);
 solution{1} = CDetection.empty();
 solution{2} = grb_result.objval;
 numDetectionInSolution = 0;
+
+% DEBUG
+solutionIdx = [];
 for v = 1:numVariables
     if 0 == grb_result.x(v), continue; end
     numDetectionInSolution = numDetectionInSolution + 1;
     solution{1}(numDetectionInSolution) = detections(v);
+    
+    % DEBUG
+    solutionIdx = [solutionIdx, v];
 end
 % catch gurobiError
 %     fprintf('Error reported\n');
 % end
+
+% DEBUG
+solutionIdx
 
 end
 

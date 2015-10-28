@@ -30,13 +30,35 @@ classdef CDetection
             CD.fullCombination = fullCombination;
             CD.score = score;
         end
-        function bCompatible = IsCompatible(CD1, CD2, listCPart, rootMaxOverlap, partMaxOverlap)            
-            % inverse detection을 만든 다음, occlusion cover를 몇 개 하는지 확인            
+        function bCompatible = IsCompatible(CD1, CD2, listCPart, rootMaxOverlap, partMaxOverlap)                
             bCompatible = false;            
+            
+            % check common part
+            commons = intersect(CD1.combination, CD2.combination);
+            if ~isempty(commons(0 < commons)), return; end
+            
+            % check root overlap
+            if ~IsCompatible(listCPart(CD1.combination(1)), listCPart(CD2.combination(1)), rootMaxOverlap)                
+                return;
+            end
+            
+            % check parts overlap (except root)
+            partsForCheck1 = CD1.combination(2:end);
+            partsForCheck2 = CD2.combination(2:end);
+            partsForCheck1 = partsForCheck1(0 < partsForCheck1);
+            partsForCheck2 = partsForCheck2(0 < partsForCheck2);
+            for p1 = partsForCheck1
+                for p2 = partsForCheck2                 
+                    if ~IsCompatible(listCPart(p1), listCPart(p2), partMaxOverlap)                        
+                        return;
+                    end
+                end
+            end
+            
+            % inverse detection을 만든 다음, occlusion cover를 몇 개 하는지 확인           
             CD1i = CD1; 
             CD1i.combination = CD1.fullCombination;
             CD1i.combination(0 < CD1.combination) = 0;
-            CD1i.combination(1:2) = CD1.fullCombination(1:2);            
             numOcc = NumOccludedParts(CD1i, CD2, listCPart, 0, partMaxOverlap);
             if numOcc > 0, return; end;
                 
@@ -44,12 +66,11 @@ classdef CDetection
             CD2i = CD2; 
             CD2i.combination = CD2.fullCombination;
             CD2i.combination(0 < CD2.combination) = 0;
-            CD2i.combination(1:2) = CD2.fullCombination(1:2);
             numOcc = NumOccludedParts(CD1, CD2i, listCPart, 0, partMaxOverlap);
             if numOcc > 0, return; end;
             
             bCompatible = true;            
-%             bCompatible = true;            
+%             bCompatible = true;
 %             % check common part
 %             commons = intersect(CD1.combination, CD2.combination);
 %             if ~isempty(commons(0 < commons))
@@ -81,15 +102,15 @@ classdef CDetection
             numOccParts = 0;
             % roots are excepted
             occludedType1 = find(0 == CD1.combination); occludedType1(1 == occludedType1) = [];
-            visibleType2 = find(0 ~= CD2.combination);  visibleType2(1 == visibleType2) = [];
-            det1Component = listCPart(CD1.combination(2)).component;            
-            det1HeadIdx = CD1.combination(2);            
+            visibleType2 = find(0 ~= CD2.combination);  visibleType2(1 == visibleType2) = [];            
             % find occluded parts of detection 1 by detection 2
             rescaleForSpeedup = 1.0;
             for occT1 = occludedType1
                 if 0 ~= CD1.fullCombination(occT1)
                     estimatedCoords = listCPart(CD1.fullCombination(occT1)).coords;
                 elseif 0 ~= model
+                    det1HeadIdx = CD1.combination(2);
+                    det1Component = listCPart(CD1.combination(1)).component;            
                     estimatedCoords = EstimatePartCoords( ...
                         listCPart(det1HeadIdx), occT1, det1Component, model);
                 end

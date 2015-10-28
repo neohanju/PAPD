@@ -116,6 +116,9 @@ for clusterIdx = 1:numCluster
             curListCParts = ...
                 listCParts(curGeneratedCombination(0 ~= curGeneratedCombination));
             curScore = sum([curListCParts.score]);
+            if length(curListCParts) < length(curCombination)
+                curScore = curScore - listCParts(curGeneratedCombination(1)).score; 
+            end
             numCurClusterDetections = numCurClusterDetections + 1;
             cellListDetections{clusterIdx}(numCurClusterDetections) = ...
                 CDetection(curGeneratedCombination, curCombination, curScore);
