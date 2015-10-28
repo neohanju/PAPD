@@ -1,5 +1,4 @@
-function  [cellListDetections] = GenerateDetections(...
-    listCParts, cellCombinationCluster, minOccOverlapRatio)
+function  [cellListDetections] = GenerateDetections(listCParts, cellCombinationCluster)
 %                                                                           ,aa,       ,aa
 %                                                                            d"  "b    ,d",`b
 %                                                                          ,dP a  "b,ad8' 8 8
@@ -73,45 +72,17 @@ configurations = configurations(1:numConfigurations,:);
 numCluster = length(cellCombinationCluster);
 cellListDetections = cell(numCluster, 1);
 for clusterIdx = 1:numCluster
-    % get data for the current cluster
     curClusterCombinations = cellCombinationCluster{clusterIdx};
     numCurCombinations = size(curClusterCombinations, 1);
-    curPartsIdxs = curClusterCombinations';
-    curPartsIdxs = curPartsIdxs(:)';
-    
-    % enumerate combinations
     cellListDetections{clusterIdx} = CDetection.empty();
     numCurClusterDetections = 0;
-    
     for cIdx = 1:numCurCombinations
-        curCombination = curClusterCombinations(cIdx,:);
-        
-        % 다른 pedestrian에 의해 가려지지 않은 part의 경우, 꼭 추가로 고려하도록
-        curPossibleConfigurations = configurations;
-        otherPartsIdxs = curPartsIdxs;
-        otherPartsIdxs((cIdx-1)*numPartTypes+1:cIdx*numPartTypes) = [];
-        for tIdx = 1:numPartTypes
-            p1 = curCombination(tIdx);
-            bOccluded = false;
-            for p2 = otherPartsIdxs
-                if p1 == p2, continue; end
-                if CheckOverlap(listCParts(p1).coords, listCParts(p2).coords, minOccOverlapRatio)
-                    bOccluded = true;
-                    break;
-                end
-            end
-            if bOccluded, continue; end            
-            curPossibleConfigurations(:,tIdx) = 1.0;
-        end
-        curPossibleConfigurations = unique(curPossibleConfigurations, 'rows');
-        curNumConfiguration = size(curPossibleConfigurations, 1);
-        
+        curCombination = curClusterCombinations(cIdx,:);                     % dim: 1x9
+        repmatCurCombination = repmat(curCombination, numConfigurations, 1); % dim: 128x9
         % element-wise multiplication 
-        repmatCurCombination = repmat(curCombination, curNumConfiguration, 1); % dim: 128x9
-        generatedCombinations = curPossibleConfigurations .* repmatCurCombination;
-        
+        generatedCombinations = [configurations .* repmatCurCombination];
         % make CDetection instance
-        for dIdx = 1:curNumConfiguration
+        for dIdx = 1:numConfigurations
             curGeneratedCombination = generatedCombinations(dIdx,:);
             curListCParts = ...
                 listCParts(curGeneratedCombination(0 ~= curGeneratedCombination));

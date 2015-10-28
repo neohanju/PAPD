@@ -71,29 +71,18 @@
 
 dbstop if error
 
-% init
-papd_init;
-
-
 fprintf('=======================================\n');
 timeStart = clock;
 fprintf(['PAPD starts at: ' ...
     datestr(datenum(0,0,0,timeStart(4),timeStart(5),timeStart(6)),'HH:MM:SS') '\n']);
 fprintf('=======================================\n');
 
+% init
+papd_init;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER AND PRESET, INPUT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% parameters
-ROOT_MAX_OVERLAP = 0.9;
-PART_MAX_OVERLAP = 0.3;
-PART_OCC_OVERLAP = 0.8;
-CLUSTER_OVERLAP  = 0.1;
-SOVLER_TIMELIMIT = 1200;
-
-% load input frame
-INPUT_FILE_NAME    = 'img5';
 image              = imread(['data/' INPUT_FILE_NAME '.jpg']);
 imageScale         = 2.0;
 [imgH, imgW, imgC] = size(image);
@@ -201,11 +190,10 @@ fprintf('done!\n');
 
 fprintf('Generate Detections...');
 tic;
-cellListDetections = GenerateDetections(listCParts, cellCombinationCluster);
+cellListDetections = GenerateDetections(listCParts, cellCombinationCluster, PART_OCC_OVERLAP);
 t_d = toc;
 fprintf(['done!\nelapsed time for generating detections: ' ...
     datestr(datenum(0,0,0,0,0,t_d),'HH:MM:SS') '\n']);
-
 
 %==========================================
 % SCORE NORMALIZATION (s in [0.0, 1.0])
