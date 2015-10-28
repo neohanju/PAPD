@@ -107,7 +107,7 @@ if 0 < numConstraints
     colIndices = [constraints(:,1); constraints(:,2)];
     grb_model.A = sparse(rowIndices', colIndices, ones(1, 2*numConstraints));
     grb_model.rhs = ones(1, numConstraints);
-    grb_model.sense = '<';  % single value -> same all
+    grb_model.sense = '<';  % single value -> same all(< means <=, becuase gorubi does not support strict inequailities)
 end
 grb_model.vtype = 'B';
 
@@ -115,15 +115,15 @@ grb_model.vtype = 'B';
 % INITIAL SOLUTION
 %==========================================
 % set initial solution with root nms result
-fullbodyIdx = 1:numVariables;
-listIsFullBody = false(1, numVariables);
+numFullbodies = 0;
+fullbodyIdx = zeros(1, numVariables);
 for dIdx = 1:numVariables
     if 0 < length(find(0 == detections(dIdx).combination)), continue; end
-    listIsFullBody(dIdx) = true;
-end    
-fullbodyIdx = fullbodyIdx(listIsFullBody);
-numFullBodies = length(fullbodyIdx);
-matFullbodyNMS = zeros(numFullBodies, 5);
+    numFullbodies = numFullbodies + 1;
+    fullbodyIdx(numFullbodies) = dIdx;
+end
+fullbodyIdx = fullbodyIdx(1:numFullbodies);
+matFullbodyNMS = zeros(numFullbodies, 5);
 for dIdx = 1:length(fullbodyIdx)
     rootIdx = detections(fullbodyIdx(dIdx)).combination(1);
     rootCoords = listCParts(rootIdx).coords;
@@ -138,7 +138,7 @@ pickedScore = matFullbodyNMS(pickedIdx,5);
 pickedIdx = pickedIdx(sortingOrder);
 initialSolution = zeros(1, numVariables);
 numInitialSolution = 0;
-for d1 = pickedIdx;        
+for d1 = fullbodyIdx(pickedIdx);
     bIncompatible = false;
     for d2 = 1:numInitialSolution
         dPair = sort([d1, initialSolution(d2)], 'ascend');
@@ -146,6 +146,26 @@ for d1 = pickedIdx;
         constraintIdx2 = find(constraints(:,2) == dPair(2));
         constraintIdx = intersect(constraintIdx1, constraintIdx2);
         if isempty(constraintIdx), continue; end
+        bIncompatible = true;
+        break;
+    end
+    if bIncompatible, continue; end
+    numInitialSolution = numInitialSolution + 1;
+    initialSolution(numInitialSolution) = d1;
+end
+for d1 = 1:numVariables
+    if ~isempty(find(d1 == initialSolution, 1)), continue; end
+    bIncompatible = false;
+    for d2 = 1:numInitialSolution
+        dPair = sort([d1, initialSolution(d2)], 'ascend');
+        constraintIdx1 = find(constraints(:,1) == dPair(1));
+        constraintIdx2 = find(constraints(:,2) == dPair(2));
+        constraintIdx = intersect(constraintIdx1, constraintIdx2);
+        if isempty(constraintIdx), continue; end
+        
+        totalNumParts = grb_model.obj(d1) + grb_model.obj(d2) + grb_model.Q(d1,d2) * 2.0;
+        if 0 <= totalNumParts, continue; end
+        
         bIncompatible = true;
         break;
     end
