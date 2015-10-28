@@ -62,5 +62,17 @@ addpath library;
 % Gurobi solver
 addpath c:/gurobi605/win64/matlab
 
+BATCH_GUROBI = false;
+
+% parameters
+ROOT_MAX_OVERLAP = 0.9;
+PART_MAX_OVERLAP = 0.8;
+PART_OCC_OVERLAP = 0.8;
+CLUSTER_OVERLAP  = 0.1;
+SOVLER_TIMELIMIT = 100;
+
+% load input frame
+INPUT_FILE_NAME    = 'img5';
+
 %()()
 %('')HAANJU.YOO
