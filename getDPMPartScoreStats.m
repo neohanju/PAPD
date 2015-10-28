@@ -17,6 +17,7 @@ model_path = 'model';
 % set stats file
 inffile = fullfile(DPM_path, 'star-cascade', 'data', ...
     'inriaperson_2007_cascade_data_pca0_2007.inf');
+negInffile = fullfile('model', 'inriaperson_2007_cascade_neg_data_pca0_2007.inf');
 % Load DPM model
 load(fullfile(model_path, 'INRIAPERSON_star.mat'));
 
@@ -26,16 +27,20 @@ load(fullfile(model_path, 'INRIAPERSON_star.mat'));
 %====================================
 % get block score statistics from info file
 [vals, blocks] = readscorestats(inffile, model);
+[negVals, negBlocks] = readscorestats(negInffile, model);
 % restrict the data to only those positive examples with score >= thresh
 I = find(vals >= model.thresh);
 blocks = blocks(I,:);
 vals = vals(I,:);
 scores = parse_scores(model, vals, blocks);
+negScores = parse_scores(model, negVals, negBlocks);
 % get order using score statistics (this order is the same as cascade-dpm
 % model)
 for c = 1:model.numcomponents
   order{c} = getorder(model, scores, c);
 end
+
+
 
 %========================
 % GET SCORE STATISTICS
@@ -53,39 +58,55 @@ end
 
 numConfigurations = size(configurations, 1);
 for c = 1 : model.numcomponents
-%     % get part scores only
-%     S = scores{c}(:, 4:2:end);    
+    %-------------------------
+    % Positive sample scores 
+    %-------------------------
     % get total score (def + filter response) of part_i
     tmp = scores{c}(:, 3:end);
-    S = zeros(size(scores{c}, 1),nParts);
+    posScores = zeros(size(scores{c}, 1),nParts);
     % P(:,i) = 
     for i = 1:nParts
-        S(:,i) = sum(tmp(:,2*i-1:2*i),2);
-    end
-    
-    
+        posScores(:,i) = sum(tmp(:,2*i-1:2*i),2);
+    end        
     % set order
-    S = S(:,order{c}(2:2+nParts-1));
-    % size of stat
-    sz = size(S, 1);
-    norm{c} = [];
+    posScores = posScores(:,order{c}(2:2+nParts-1));
+    
+    %-------------------------
+    % Negative sample scores
+    %-------------------------
+    tmp = negScores{c}(:, 3:end);
+    negScores = zeros(size(negScores{c}, 1),nParts);
+    % P(:,i) = 
+    for i = 1:nParts
+        negScores(:,i) = sum(tmp(:,2*i-1:2*i),2);
+    end        
+    % set order
+    negScores = negScores(:,order{c}(2:2+nParts-1));
+    
+    
+    %---------------------------------------------------
+    % Score statistics corresponding to configurations
+    % (지금은 positive sample만 고려함.)
+    %---------------------------------------------------    
+    sz = size(posScores, 1);
+    normParam{c} = [];
     for confIdx = 1 : numConfigurations
         curConf = configurations(confIdx, :);
         curConf(1) = [];                     % ex)     1 * 8
         curConfMat = repmat(curConf, sz, 1); % ex)  2180 * 8
         % find min, max
-        scoreSum = sum(curConfMat.*S, 2);        
+        scoreSum = sum(curConfMat.*posScores, 2);        
         scoreMax = max(scoreSum);
         scoreMin = min(scoreSum);        
-        norm{c}(confIdx).max = scoreMax;
-        norm{c}(confIdx).min = scoreMin;                
+        normParam{c}(confIdx).max = scoreMax;
+        normParam{c}(confIdx).min = scoreMin;                
     end
 end
 
 %==========================
 % SAVE NORMALIZATION PARAM
 %==========================
-save(fullfile(model_path, 'ConfigurationScoreStats.mat'),'norm');
+save(fullfile(model_path, 'ConfigurationScoreStats.mat'),'normParam');
 
 
 
