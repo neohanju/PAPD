@@ -1,5 +1,5 @@
-function [solution, grb_model] = Optimization_Gurobi(detections, listCParts, ...
-    model, rootMaxOverlap, partMaxOverlap, partOccMinOverlap, timelimit)
+% function [solution, grb_model] = Optimization_Gurobi(detections, listCParts, ...
+%     model, rootMaxOverlap, partMaxOverlap, partOccMinOverlap, timelimit)
 %     .__                           __.
 %       \ `\~~---..---~~~~~~--.---~~| /   
 %        `~-.   `                   .~         _____ 
@@ -21,104 +21,17 @@ function [solution, grb_model] = Optimization_Gurobi(detections, listCParts, ...
 %               (   /        \    /
 %               `--'          /__/
 
-tic;
-clear grb_model grb_params;
-numVariables = length(detections);
-numPartTypes = floor(length(model.partfilters) / model.numcomponents);
+numVariables = length(grb_model.obj);
+detections = cellListDetections{2};
+rootMaxOverlap = ROOT_MAX_OVERLAP;
+partMaxOverlap = PART_MAX_OVERLAP;
+partOccMinOverlap = PART_OCC_OVERLAP;
+% constraints = zeros(size(grb_model.A, 1), 2);
+% for c = 1:size(grb_model.A, 1)
+%     idxs = find(1 == grb_model.A(c,:));
+%     constraints(c,:) = [idxs(1), idxs(2)];
+% end
 
-%==========================================
-% UNARI SCORES
-%==========================================
-fprintf('construct unary scorses...');
-scoreUnary = [detections.score];
-defaultVisiblePartScore = numPartTypes; % exclude root
-for dIdx = 1:numVariables
-    numVisiblePart = length(find(0 ~= detections(dIdx).combination(2:end)));
-    scoreUnary(dIdx) = scoreUnary(dIdx) + numVisiblePart - defaultVisiblePartScore;
-end
-fprintf('done!!\n');
-
-% try
-%==========================================
-% PAIRWISE CHECK
-%==========================================
-% construct Q (pairwise score)
-fprintf('construct Q and constraints...');
-scorePairwise = zeros(numVariables*(numVariables+1)/2, 3);
-constraints = zeros(numVariables^2, 2);
-numScorePairwise = 0;
-numConstraints = 0;
-numLoops = numVariables*(numVariables+1)/2;
-curLoop = 0;
-nchar = fprintf('%d/%d', curLoop, numLoops);
-for d1 = 1:numVariables-1
-    for d2 = d1+1:numVariables
-        curLoop = curLoop + 1;
-        if mod(curLoop, 100) == 0
-            fprintf(repmat('\b', 1, nchar));
-            nchar = fprintf('%d/%d', curLoop, numLoops);
-        end
-        % constraints
-        if ~IsCompatible(detections(d1), detections(d2), listCParts, ...
-                rootMaxOverlap, partMaxOverlap)
-            numConstraints = numConstraints + 1;
-            constraints(numConstraints,:) = [d1, d2];
-            continue;
-        end
-        % pairwise score
-        numOccludedParts1 = NumOccludedParts( ...
-            detections(d1), ...
-            detections(d2), ...
-            listCParts, model, partOccMinOverlap);
-        numOccludedParts2 = NumOccludedParts( ...
-            detections(d2), ...
-            detections(d1), ...
-            listCParts, model, partOccMinOverlap);
-
-        if 0 < numOccludedParts1
-            numScorePairwise = numScorePairwise + 1;
-            scorePairwise(numScorePairwise,:) = [d1, d2, numOccludedParts1];
-        end
-        if 0 < numOccludedParts2
-            numScorePairwise = numScorePairwise + 1;
-            scorePairwise(numScorePairwise,:) = [d2, d1, numOccludedParts2];
-        end
-    end
-end
-constraints = constraints(1:numConstraints,:);
-scorePairwise = scorePairwise(1:numScorePairwise,:);
-fprintf('...done!!\n');
-fprintf('%d constraints / %d pairwise scores\n', numConstraints, numScorePairwise);
-
-%==========================================
-% MODEL
-%==========================================    
-% set objectives
-if 0 < numScorePairwise
-    scores = scorePairwise(:,3);
-    rowIndices = scorePairwise(:,1);
-    colIndices = scorePairwise(:,2);
-    if max(rowIndices) < numVariables || max(colIndices) < numVariables
-        rowIndices(end+1) = numVariables;
-        colIndices(end+1) = numVariables;
-        scores(end+1) = 0.0;
-    end
-    grb_model.Q = sparse(rowIndices, colIndices, scores);
-end
-grb_model.obj = scoreUnary;
-grb_model.modelsense = 'max';
-clear rowIndices colIndices scores scoreUnary scorePairwise;
-
-% set constraints to the model
-if 0 < numConstraints
-    constraints = constraints(1:numConstraints,:);
-    rowIndices = [1:numConstraints, 1:numConstraints];
-    colIndices = [constraints(:,1); constraints(:,2)];
-    grb_model.A = sparse(rowIndices', colIndices, ones(1, 2*numConstraints));
-    grb_model.rhs = ones(1, numConstraints);
-    grb_model.sense = '<';  % single value -> same all(< means <=, becuase gorubi does not support strict inequailities)
-end
-grb_model.vtype = 'B';
 
 %==========================================
 % INITIAL SOLUTION
@@ -223,7 +136,6 @@ end
 %     fprintf('Error reported\n');
 % end
 
-end
 
 %()()
 %('')HAANJU.YOO

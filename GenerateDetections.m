@@ -118,7 +118,7 @@ for clusterIdx = 1:numCluster
             curScore = sum([curListCParts.score]);
             numCurClusterDetections = numCurClusterDetections + 1;
             cellListDetections{clusterIdx}(numCurClusterDetections) = ...
-                CDetection(curGeneratedCombination, curScore);
+                CDetection(curGeneratedCombination, curCombination, curScore);
         end
     end
 end
