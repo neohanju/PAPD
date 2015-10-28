@@ -32,12 +32,12 @@ load(fullfile(model_path, 'INRIAPERSON_star.mat'));
 I = find(vals >= model.thresh);
 blocks = blocks(I,:);
 vals = vals(I,:);
-scores = parse_scores(model, vals, blocks);
-negScores = parse_scores(model, negVals, negBlocks);
+scoresCell = parse_scores(model, vals, blocks);
+negScoresCell = parse_scores(model, negVals, negBlocks);
 % get order using score statistics (this order is the same as cascade-dpm
 % model)
 for c = 1:model.numcomponents
-  order{c} = getorder(model, scores, c);
+  order{c} = getorder(model, scoresCell, c);
 end
 
 
@@ -62,8 +62,8 @@ for c = 1 : model.numcomponents
     % Positive sample scores 
     %-------------------------
     % get total score (def + filter response) of part_i
-    tmp = scores{c}(:, 3:end);
-    posScores = zeros(size(scores{c}, 1),nParts);
+    tmp = scoresCell{c}(:, 3:end);
+    posScores = zeros(size(scoresCell{c}, 1),nParts);
     % P(:,i) = 
     for i = 1:nParts
         posScores(:,i) = sum(tmp(:,2*i-1:2*i),2);
@@ -74,8 +74,8 @@ for c = 1 : model.numcomponents
     %-------------------------
     % Negative sample scores
     %-------------------------
-    tmp = negScores{c}(:, 3:end);
-    negScores = zeros(size(negScores{c}, 1),nParts);
+    tmp = negScoresCell{c}(:, 3:end);
+    negScores = zeros(size(negScoresCell{c}, 1),nParts);
     % P(:,i) = 
     for i = 1:nParts
         negScores(:,i) = sum(tmp(:,2*i-1:2*i),2);
