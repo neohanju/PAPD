@@ -14,7 +14,6 @@ for d = 1:numDetections
     if 0 < length(find(0 == detections(d).combination)), continue; end
     numFullbodies = numFullbodies + 1;
     fullbodyIdxs(numFullbodies) = d;
-    rootIdxs(numFullbodies)     = detections(d).combination(1);
     if numFullbodies == pedIdx1, pedRootIdx1 = detections(d).combination(1); end
     if numFullbodies == pedIdx2, pedRootIdx2 = detections(d).combination(1); end
 end
