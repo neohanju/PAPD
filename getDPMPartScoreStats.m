@@ -104,18 +104,22 @@ for c = 1 : model.numcomponents
         
         
         % positive & negative scores
-        curPosScore{confIdx} = sum(curConfMat.*posScores, 2);
+        posScoreSum{confIdx} = sum(curConfMat.*posScores, 2);
         curNegConfMat = repmat(curConf, sz_neg, 1);
-        curNegScore{confIdx} = sum(curNegConfMat.*negScores, 2);
+        negScoreSum{confIdx} = sum(curNegConfMat.*negScores, 2);
         %
     end
 end
+scoreStats.posScoreSum  = posScoreSum;
+scoreStats.negScoreSum  = negScoreSum;
+scoreStats.posScores    = posScores;
+scoreStats.negScores    = negScores;
 
 %==========================
 % SAVE NORMALIZATION PARAM
 %==========================
 save(fullfile(model_path, 'ConfigurationScoreStats.mat'),'normParam', ...
-    'curPosScore', 'curNegScore');
+    'scoreStats');
 
 
 
