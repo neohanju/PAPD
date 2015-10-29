@@ -259,7 +259,7 @@ cellListDetections = ClassifyDetetions_SVM(cellListDetections, SVMModels);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % solve MWCP with the graph
 figDebug = figure(100); imshow(image, 'border', 'tight');
-cellSolutions = cell(numClusters, 2); % {detection list}{objective value}
+cellSolutions = cell(numClusters, 3); % {detection list}{detection index}{objective value}
 for clusterIdx = 1:numClusters
     fprintf('----------SOLVING CLUSTER %03d----------\n', clusterIdx);
     if listSingleHeadCluster(clusterIdx)

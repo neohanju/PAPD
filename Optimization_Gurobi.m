@@ -42,7 +42,6 @@ for dIdx = 1:numVariables
 end
 fprintf('done!!\n');
 
-% try
 %==========================================
 % PAIRWISE CHECK
 %==========================================
@@ -219,24 +218,18 @@ fprintf(['done!!\n' 'solving time: ' datestr(datenum(0,0,0,0,0,t_solve),'HH:MM:S
 %==========================================
 % RESULT PACKAGING
 %==========================================
-solution = cell(1, 2);
-solution{1} = CDetection.empty();
-solution{2} = grb_result.objval;
+solution = cell(1, 3);
+solution{1} = CDetection.empty();     % detections in solution
+solution{2} = zeros(1, numVariables); % index of solution variables
+solution{3} = grb_result.objval;      % objective value
 numDetectionInSolution = 0;
-
-solutionIdx = []; % DEBUG
 for v = 1:numVariables
     if 0 == grb_result.x(v), continue; end
     numDetectionInSolution = numDetectionInSolution + 1;
-    solution{1}(numDetectionInSolution) = detections(v);
-    
-    solutionIdx = [solutionIdx, v]; % DEBUG
+    solution{1}(numDetectionInSolution) = detections(v);    
+    solution{2}(numDetectionInSolution) = v;
 end
-solutionIdx % DEBUG
-
-% catch gurobiError
-%     fprintf('Error reported\n');
-% end
+solution{2} = solution{2}(1:numDetectionInSolution);
 
 end
 
