@@ -93,7 +93,8 @@ for componentIdx = 1:numComponent
             FullbodyCombinations(numFullbodies,typeIdx) = numParts;            
             % occlusion prior
             imageRect = round(curCoord);
-            partMap(imageRect(2):imageRect(4),imageRect(1):imageRect(3)) = 1.0;
+            partMap(max(1,imageRect(2)): min(size(partMap, 1), imageRect(4)),...
+                max(1,imageRect(1)): min(size(partMap, 2), imageRect(3))) = 1.0;
             % enlarge scale and a2p for parts
             if 1 == typeIdx
                 curScale = 2.0 * curScale;

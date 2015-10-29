@@ -20,4 +20,5 @@ for bIdx = 1:numBoxes
     end
 end
 hold off;
+drawnow;
 end

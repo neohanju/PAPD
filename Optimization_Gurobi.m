@@ -122,9 +122,21 @@ if 0 < numConstraints
     constraints = constraints(1:numConstraints,:);
     rowIndices = [1:numConstraints, 1:numConstraints];
     colIndices = [constraints(:,1); constraints(:,2)];
-    grb_model.A = sparse(rowIndices', colIndices, ones(1, 2*numConstraints));
+    constOnes  = ones(1, 2*numConstraints);
+    % exception handling // when colIndices does not include numVariable.
+    if isempty(find(colIndices==numVariables, 1))
+        rowIndices(end+1) = numConstraints;
+        colIndices(end+1) = numVariables;
+        constOnes(end+1)  = 0;
+    end
+    grb_model.A = sparse(rowIndices', colIndices, constOnes);
     grb_model.rhs = ones(1, numConstraints);
     grb_model.sense = '<';  % single value -> same all(< means <=, becuase gorubi does not support strict inequailities)
+else
+    % when numConstraints == 0
+    grb_model.A = sparse(ones(numVariables, 1), [1:numVariables]', zeros(numVariables, 1));
+    grb_model.rhs = ones(1, 1);
+    grb_model.sense = '<';
 end
 grb_model.vtype = 'B';
 
