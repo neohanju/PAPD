@@ -21,7 +21,7 @@ function [solution, grb_model] = Optimization_Gurobi(detections, listCParts, ...
 %               (   /        \    /
 %               `--'          /__/
 
-tic;
+t_const = tic; tic;
 clear grb_model grb_params;
 numVariables = length(detections);
 numPartTypes = floor(length(model.partfilters) / model.numcomponents);
@@ -57,9 +57,10 @@ nchar = fprintf('%d/%d', curLoop, numLoops);
 for d1 = 1:numVariables-1
     for d2 = d1+1:numVariables
         curLoop = curLoop + 1;
-        if mod(curLoop, 100) == 0
+        if toc > 1
             fprintf(repmat('\b', 1, nchar));
             nchar = fprintf('%d/%d', curLoop, numLoops);
+            tic;
         end
         % constraints
         if ~IsCompatible(detections(d1), detections(d2), listCParts, ...
@@ -212,8 +213,8 @@ grb_model.start = initialVector';
 %==========================================
 grb_params.outputflag = 0;
 grb_params.timelimit = timelimit;
-t_const = toc;
-fprintf(['construction time: ' datestr(datenum(0,0,0,0,0,t_const),'HH:MM:SS') '\n']);
+toc_const = toc(t_const);
+fprintf(['construction time: ' datestr(datenum(0,0,0,0,0,toc_const),'HH:MM:SS') '\n']);
 
 %==========================================
 % SOLVE
