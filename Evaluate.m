@@ -1,4 +1,4 @@
-function [stEvaluationResult] = Evaluate(stDetectionResult, cellGroundTruth)
+function [stEvaluationResult] = Evaluate(stDetectionResult, cellGroundTruths, evalMinOverlap)
 %==========================================================================
 % Input arguments
 %--------------------------------------------------------------------------
@@ -33,7 +33,7 @@ function [stEvaluationResult] = Evaluate(stDetectionResult, cellGroundTruth)
 %==============================
 % Settings
 %==============================
-main_init;
+% main_init;
 % Output argument: structure for evaluation (example)
 stEvaluationResult = struct(...
     'precision', 0, ...
@@ -41,7 +41,7 @@ stEvaluationResult = struct(...
     'missRate', 0, ...
     'FPPI', 0);
 % Get ground truths and detected bboxs
-cellGTs = cellGroundTruth.cellGroundTruths;
+cellGTs = cellGroundTruths;
 cellBBoxs = stDetectionResult.cellBBoxs;
 % Get start and end frames
 START_FRAME = stDetectionResult.startFrame;
@@ -58,8 +58,7 @@ numPositives        = 0;
 % run loop
 fprintf('==========================================\n');
 fprintf(' START EVALUATION \n');
-fprintf(' Dataset DIR: %s\n', DATASET_PATH);
-fprintf('==========================================\n');
+fprintf(' Dataset DIR: %s\n', stDetectionResult.dataset);
 t_main = tic;
 tic;
 for frameIdx = START_FRAME : END_FRAME
@@ -93,7 +92,7 @@ for frameIdx = START_FRAME : END_FRAME
             gtbb = [curGTBB(1), curGTBB(2), ...
                 curGTBB(1)+curGTBB(3), curGTBB(2)+curGTBB(4)];            
             
-            % check overlap is larger than EVAL_MIN_OVERLAP
+            % check overlap is larger than evalMinOverlap
             bi = [max(bb(1),gtbb(1)); max(bb(2),gtbb(2));...
                   min(bb(3),gtbb(3)); min(bb(4),gtbb(4))];
             iw = bi(3)-bi(1)+1;
@@ -112,7 +111,7 @@ for frameIdx = START_FRAME : END_FRAME
         end
         
         % assign detection as true positive / false positive
-        if ovMax > EVAL_MIN_OVERLAP
+        if ovMax > evalMinOverlap
             if ~gtDetected(gtIdxMax)
                 % true positive
                 gtDetected(gtIdxMax) = true;
@@ -151,14 +150,12 @@ for frameIdx = START_FRAME : END_FRAME
     
 end
 t_eval = toc(t_main);
-fprintf('==========================================\n');
 fprintf(' DONE! Evaluation time: %f \n', t_eval);
-fprintf('==========================================\n');
-
-
-
 prec    = sumTruePositive/ (sumTruePositive+sumFalsePositive);
 rec     = sumTruePositive/ numPositives;
+fprintf(' precision: %f\n', prec);
+fprintf(' recall   : %f\n', rec);
+fprintf('==========================================\n');
 
 stEvaluationResult.precision = prec;
 stEvaluationResult.recall    = rec;

@@ -1,4 +1,4 @@
-function stDPMEvaluationResult = EvaluateDPM ()
+function stDPMEvaluationResult = EvaluateDPM (datasetpath, cellGroundTruths, evalMinOverlap)
 %==========================================================================
 % This code evaluates DPM detection results on PETS 2009 datset,
 % and automatically saves the evaluation results.
@@ -21,6 +21,8 @@ function stDPMEvaluationResult = EvaluateDPM ()
 % ___________/__][__\___________________________________/____|[_]_\__
 % 
 
+global START_FRAME_IDX END_FRAME_IDX 
+global PARTCANDIDATE_DIR PARTCANDIDATE_FORM PARTCANDIDATE_SCALE
 
 % Output argument: structure for evaluation (example)
 stDPMEvaluationResult = struct(...
@@ -29,19 +31,12 @@ stDPMEvaluationResult = struct(...
     'missRate', 0, ...
     'FPPI', 0);
 
-% init
-main_init;
-
-% load Ground Truths
-load(fullfile(GROUNDTRUTH_DIR, GROUNDTRUTH_NAME));
-
 %===========================
 % run loop
 %===========================
 fprintf('==========================================\n');
 fprintf(' START DPM EVALUATION \n');
-fprintf(' Dataset DIR: %s\n', DATASET_PATH);
-fprintf('==========================================\n');
+fprintf(' Dataset DIR: %s\n', datasetpath);
 % time setting
 t_main = tic;
 tic;
@@ -61,7 +56,7 @@ for frameIdx = START_FRAME_IDX : END_FRAME_IDX
     load(partPath);  
     coords = coords / PARTCANDIDATE_SCALE;
     dets = coords([1:4 end-1 end],:)';
-    I = nms(dets, EVAL_MIN_OVERLAP);
+    I = nms(dets, evalMinOverlap);
     curBBoxs = coords(1:4,I)'; % [x1, y1, x2, y2]    
     curGTs = cellGroundTruths{frameIdx+1}; % frame starts from 0 (IMPORTANT!)
     % cellGT: [centerx, centery, width, height]  
@@ -87,7 +82,7 @@ for frameIdx = START_FRAME_IDX : END_FRAME_IDX
             gtbb = [curGTBB(1), curGTBB(2), ...
                 curGTBB(1)+curGTBB(3), curGTBB(2)+curGTBB(4)];            
             
-            % check overlap is larger than EVAL_MIN_OVERLAP
+            % check overlap is larger than evalMinOverlap
             bi = [max(bb(1),gtbb(1)); max(bb(2),gtbb(2));...
                   min(bb(3),gtbb(3)); min(bb(4),gtbb(4))];
             iw = bi(3)-bi(1)+1;
@@ -106,7 +101,7 @@ for frameIdx = START_FRAME_IDX : END_FRAME_IDX
         end
         
         % assign detection as true positive / false positive
-        if ovMax > EVAL_MIN_OVERLAP
+        if ovMax > evalMinOverlap
             if ~gtDetected(gtIdxMax)
                 % true positive
                 gtDetected(gtIdxMax) = true;
@@ -144,9 +139,7 @@ for frameIdx = START_FRAME_IDX : END_FRAME_IDX
 %     pause;
 end
 t_eval = toc(t_main);
-fprintf('==========================================\n');
 fprintf(' DONE! Evaluation time: %f \n', t_eval);
-fprintf('==========================================\n');
 
 %==============================
 % compute precision/recall
@@ -174,12 +167,8 @@ title(sprintf('AP = %.3f',AP));
 stDPMEvaluationResult.precision = prec;
 stDPMEvaluationResult.recall    = rec;
 
-save(fullfile(RESULT_DIR, sprintf('frame_%04d_DPM_result_%1.2f.mat', frameIdx, ...
-            EVAL_MIN_OVERLAP)), '-v6', ...
-            'stDPMEvaluationResult');
-
-
-fprintf(' END ! \n');
+% fprintf(' precision: %f\n', prec);
+% fprintf(' recall   : %f\n', rec);
 fprintf('==========================================\n');
 
 end

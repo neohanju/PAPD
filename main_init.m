@@ -2,10 +2,11 @@
 % PARAMETERS
 %==========================================
 ROOT_MAX_OVERLAP = 0.9;
-% HEAD_NMS_RATIO   = [0.5, 0.6, 0.7, 0.8];
-% PART_NMS_RATIO   = [0.3, 0.5, 0.8];
-HEAD_NMS_RATIO   = 0.3;
-PART_NMS_RATIO   = 0.8;
+HEAD_NMS_RATIO   = [0.1, 0.3, 0.5, 0.8];
+PART_NMS_RATIO   = [0.3, 0.5, 0.8];
+% HEAD_NMS_RATIO   = 0.3;
+% PART_NMS_RATIO   = 0.8;
+EVAL_MIN_OVERLAP = 0.5;
 SOVLER_TIMELIMIT = 60;
 
 %==========================================
@@ -14,14 +15,16 @@ SOVLER_TIMELIMIT = 60;
 DATASET_PATH = 'D:/Workspace/Dataset/PETS2009/S2/L2/Time_14-55';
 
 % image
-IMAGE_DIR       = [DATASET_PATH, '/View_001'];
+global START_FRAME_IDX END_FRAME_IDX
+IMAGE_DIR       = fullfile(DATASET_PATH, 'View_001');
 IMAGE_NAMEFORM  = 'frame_%04d';
 IMAGE_FORMATE   = 'jpg';
 START_FRAME_IDX = 424;
 END_FRAME_IDX   = 424;
 
 % part detection
-PARTCANDIDATE_DIR   = [IMAGE_DIR, '/partDetections'];
+global PARTCANDIDATE_DIR PARTCANDIDATE_FORM PARTCANDIDATE_SCALE
+PARTCANDIDATE_DIR   = fullfile(IMAGE_DIR, 'partDetections');
 PARTCANDIDATE_FORM  = [IMAGE_NAMEFORM '_part_candidates.mat'];
 PARTCANDIDATE_SCALE = 2.0;
 
@@ -39,7 +42,6 @@ RESULT_NAMEFORM = 'frame_%04d_result_%1.2f_%1.2f.mat';
 % LIBRARIES
 %==========================================
 addpath library;
-addpath utils;
 addpath c:/gurobi605/win64/matlab;  % Gurobi solver
 load    model/INRIAPERSON_star.mat; % DPM model
 CDC = CDistinguishableColors();     % distinguishable colors

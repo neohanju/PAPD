@@ -43,7 +43,7 @@ stDetectionResult = struct(...
     'solvingTime', 0);
 
 % ground truth
-cellGroundTruths = load(fullfile(GROUNDTRUTH_DIR, GROUNDTRUTH_NAME));
+load(fullfile(GROUNDTRUTH_DIR, GROUNDTRUTH_NAME));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DETECTION LOOP
@@ -119,21 +119,20 @@ for hnrIdx = 1:numHNR
         %==========================================
         % EVALUATION
         %==========================================
-        % todo...
-        % stEvaluationResult(numExp).averagePrecision = -1000;
-        % stEvaluationResult(numExp).missRate = inf;
-        stEvaluationResult(numExp) = Evaluate(stDetectionResult(numExp), cellGroundTruths);
+        stEvaluationResult(numExp)    = Evaluate(stDetectionResult(numExp), cellGroundTruths, EVAL_MIN_OVERLAP);
+        stEvaluationResultDPM(numExp) = EvaluateDPM(DATASET_PATH, cellGroundTruths, EVAL_MIN_OVERLAP);
         
         %==========================================
         % RESULT SAVING
         %==========================================
-        curDetectionResult  = stDetectionResult(numExp);
-        curEvaluationResult = stEvaluationResult(numExp);
+        curDetectionResult     = stDetectionResult(numExp);
+        curEvaluationResult    = stEvaluationResult(numExp);
+        curEvaluationResultDPM = stEvaluationResultDPM(numExp);
         save(fullfile(RESULT_DIR, sprintf(RESULT_NAMEFORM, frameIdx, ...
             stDetectionResult(numExp).headNMSRatio, ...            
             stDetectionResult(numExp).partNMSRatio)), ...
             '-v6', ...
-            'curDetectionResult', 'curEvaluationResult');
+            'curDetectionResult', 'curEvaluationResult', 'curEvaluationResultDPM');
     end
 end
 
