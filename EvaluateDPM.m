@@ -198,7 +198,7 @@ title(sprintf('log-average miss rate = %.2f%%',miss*100));
 % SAVE AND END
 %==============================
 stDPMEvaluationResult.FPPI      = FPPI;
-stDPMEvaluationResult.missrate  = MISSRATE;
+stDPMEvaluationResult.missRate  = MISSRATE;
 stDPMEvaluationResult.precision = prec;
 stDPMEvaluationResult.recall    = rec;
 fprintf('==========================================\n');

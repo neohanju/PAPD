@@ -96,18 +96,18 @@ for frameIdx = START_FRAME_IDX : END_FRAME_IDX
     gtIds       = [gtIds; frameIdx * ones(size(curGTs,1),1)];
     numPositives = numPositives + size(curGTs,1);    
     
-    % VISUALIZE
-    main_init;
-    figure(frameIdx+1);
-    imagePath = fullfile(IMAGE_DIR, sprintf([IMAGE_NAMEFORM, '.', IMAGE_FORMATE], frameIdx));
-    image = imread(imagePath);
-    imshow(image, 'border', 'tight'); hold on;
-    for k = 1 : size(curBBoxs, 1)
-        rectangle('Position', curBBoxs(k,1:4), 'EdgeColor', 'r');
-    end
-    for k = 1 : size(curGTs, 1)
-        rectangle('Position', curGTs(k,1:4), 'EdgeColor', 'b');
-    end     
+%     % VISUALIZE
+%     main_init;
+%     figure(frameIdx+1);
+%     imagePath = fullfile(IMAGE_DIR, sprintf([IMAGE_NAMEFORM, '.', IMAGE_FORMATE], frameIdx));
+%     image = imread(imagePath);
+%     imshow(image, 'border', 'tight'); hold on;
+%     for k = 1 : size(curBBoxs, 1)
+%         rectangle('Position', curBBoxs(k,1:4), 'EdgeColor', 'r');
+%     end
+%     for k = 1 : size(curGTs, 1)
+%         rectangle('Position', curGTs(k,1:4), 'EdgeColor', 'b');
+%     end     
     
     
 end
@@ -205,6 +205,7 @@ end
 figure(2001); clf;
 plot(rec,prec,'-');
 grid;
+axis([0 1 0 1]);
 xlabel 'recall'
 ylabel 'precision'
 title(sprintf('AP = %.3f',AP));
@@ -235,7 +236,7 @@ title(sprintf('log-average miss rate = %.2f%%',miss*100));
 % SAVE AND END
 %==============================
 stEvaluationResult.FPPI      = FPPI;
-stEvaluationResult.missrate  = MISSRATE;
+stEvaluationResult.missRate  = MISSRATE;
 stEvaluationResult.precision = prec;
 stEvaluationResult.recall    = rec;
 fprintf('==========================================\n');
