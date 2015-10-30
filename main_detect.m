@@ -45,6 +45,13 @@ stDetectionResult = struct(...
 % ground truth
 load(fullfile(GROUNDTRUTH_DIR, GROUNDTRUTH_NAME));
 
+% configuration classifier
+load(fullfile('model', 'ConfigurationClassifiers.mat'));
+classifiers = SVMModels;
+normalizationInfos.positiveScoreMean = positiveScoreMean;
+normalizationInfos.positiveScoreStd  = positiveScoreStd;
+clear SVMModels positiveScoreMean positiveScoreStd;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DETECTION LOOP
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -101,6 +108,8 @@ for hnrIdx = 1:numHNR
                 stDetectionResult(numExp).headNMSRatio, ...
                 stDetectionResult(numExp).partNMSRatio, ...
                 stDetectionResult(numExp).partNMSRatio, ...
+                classifiers, ...
+                normalizationInfos, ...
                 stDetectionResult(numExp).solverTimeLimit);
             
             cellIdx = cellIdx + 1;

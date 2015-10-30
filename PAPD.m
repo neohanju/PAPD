@@ -1,6 +1,7 @@
 function [bboxs, pboxs, solutionDeteils, listCParts]...
     = PAPD(image, partDetections, model, ...
     rootMaxOverlap, headMaxOverlap, partMaxOverlap, partOccOverlap, ...
+    classifiers, normalizationInfos, ...
     solverTimeLimit)
 %     .__                           __.
 %       \ `\~~---..---~~~~~~--.---~~| /   
@@ -132,12 +133,7 @@ fprintf(['done! ' datestr(datenum(0,0,0,0,0,t_d),'HH:MM:SS') ' elapsed\n']);
 % CLASSIFY DETECTIONS
 %==========================================
 % SVM
-load(fullfile('model', 'ConfigurationClassifiers.mat'));
-cellListDetections = ClassifyDetetions_SVM(cellListDetections, SVMModels);
-
-% % thresholding
-% load(fullfile('model', 'ConfigurationThresholds.mat'));
-% cellListDetections = ClassifyDetetions_Threshold(cellListDetections, cellThresholds);
+cellListDetections = ClassifyDetetions_SVM(cellListDetections, classifiers);
 
 %==========================================
 % NORMALIZE SCORES
@@ -157,8 +153,8 @@ for clusterIdx = 1:numClusters
         configurationIdx = bin2dec(curConfigurationString(3:end))+1; % except head and root       
         % subtract root filter response
         curTotalScore = curTotalScore - curFullScores(1); 
-        newScore = (curTotalScore - positiveScoreMean(configurationIdx)) ...
-            / (6*positiveScoreStd(configurationIdx)) + 0.5;        
+        newScore = (curTotalScore - normalizationInfos.positiveScoreMean(configurationIdx)) ...
+            / (6*normalizationInfos.positiveScoreStd(configurationIdx)) + 0.5;        
         newScore = newScore + curFullScores(1);
         % add root filter response
         cellListDetections{clusterIdx}(dIdx).normalizedScore = newScore;
