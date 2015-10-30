@@ -119,20 +119,19 @@ for hnrIdx = 1:numHNR
         %==========================================
         % EVALUATION
         %==========================================
-        stEvaluationResult(numExp)    = Evaluate(stDetectionResult(numExp), cellGroundTruths, EVAL_MIN_OVERLAP);
-        stEvaluationResultDPM(numExp) = EvaluateDPM(DATASET_PATH, cellGroundTruths, EVAL_MIN_OVERLAP);
+        stEvaluationResult(numExp) = Evaluate(stDetectionResult(numExp), cellGroundTruths, EVAL_MIN_OVERLAP);
+        
         
         %==========================================
         % RESULT SAVING
         %==========================================
-        curDetectionResult     = stDetectionResult(numExp);
-        curEvaluationResult    = stEvaluationResult(numExp);
-        curEvaluationResultDPM = stEvaluationResultDPM(numExp);
-        save(fullfile(RESULT_DIR, sprintf(RESULT_NAMEFORM, frameIdx, ...
+        curDetectionResult  = stDetectionResult(numExp);
+        curEvaluationResult = stEvaluationResult(numExp);
+        save(fullfile(RESULT_DIR, sprintf(RESULT_NAMEFORM, ...
             stDetectionResult(numExp).headNMSRatio, ...            
             stDetectionResult(numExp).partNMSRatio)), ...
             '-v6', ...
-            'curDetectionResult', 'curEvaluationResult', 'curEvaluationResultDPM');
+            'curDetectionResult', 'curEvaluationResult');
     end
 end
 

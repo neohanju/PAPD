@@ -2,10 +2,10 @@
 % PARAMETERS
 %==========================================
 ROOT_MAX_OVERLAP = 0.9;
-HEAD_NMS_RATIO   = [0.1, 0.3, 0.5, 0.8];
-PART_NMS_RATIO   = [0.3, 0.5, 0.8];
-% HEAD_NMS_RATIO   = 0.3;
-% PART_NMS_RATIO   = 0.8;
+% HEAD_NMS_RATIO   = [0.1, 0.3, 0.5, 0.8];
+% PART_NMS_RATIO   = [0.3, 0.5, 0.8];
+HEAD_NMS_RATIO   = 0.5;
+PART_NMS_RATIO   = 0.8;
 EVAL_MIN_OVERLAP = 0.5;
 SOVLER_TIMELIMIT = 60;
 
@@ -15,15 +15,13 @@ SOVLER_TIMELIMIT = 60;
 DATASET_PATH = 'D:/Workspace/Dataset/PETS2009/S2/L2/Time_14-55';
 
 % image
-global START_FRAME_IDX END_FRAME_IDX
 IMAGE_DIR       = fullfile(DATASET_PATH, 'View_001');
 IMAGE_NAMEFORM  = 'frame_%04d';
 IMAGE_FORMATE   = 'jpg';
-START_FRAME_IDX = 424;
-END_FRAME_IDX   = 424;
+START_FRAME_IDX = 0; % 424 is the target frame
+END_FRAME_IDX   = 435;
 
 % part detection
-global PARTCANDIDATE_DIR PARTCANDIDATE_FORM PARTCANDIDATE_SCALE
 PARTCANDIDATE_DIR   = fullfile(IMAGE_DIR, 'partDetections');
 PARTCANDIDATE_FORM  = [IMAGE_NAMEFORM '_part_candidates.mat'];
 PARTCANDIDATE_SCALE = 2.0;
@@ -36,7 +34,7 @@ GROUNDTRUTH_NAME = 'PETS2009-S2L2.mat';
 % OUTPUT
 %==========================================
 RESULT_DIR      = 'D:/Workspace/ExperimentalResult/PAPD/PETS2009-S2L2';
-RESULT_NAMEFORM = 'frame_%04d_result_%1.2f_%1.2f.mat';
+RESULT_NAMEFORM = 'result_hnr%1.2f_pnr%1.2f.mat';
 
 %==========================================
 % LIBRARIES
