@@ -139,50 +139,32 @@ cellListDetections = ClassifyDetetions_SVM(cellListDetections, SVMModels);
 % load(fullfile('model', 'ConfigurationThresholds.mat'));
 % cellListDetections = ClassifyDetetions_Threshold(cellListDetections, cellThresholds);
 
-% %==========================================
-% % NORMALIZE SCORES
-% %==========================================
-% % score normalization (mean - 3 std ~ mean + 3 std -> 0 to 1)
-% fprintf('score normalization...');
-% normScores = cell(numClusters, 1);
-% for clusterIdx = 1:numClusters
-%     numCurDetections = length(cellListDetections{clusterIdx});
-%     for dIdx = 1:length(cellListDetections{clusterIdx})        
-%         curTotalScore  = cellListDetections{clusterIdx}(dIdx).score;
-%         curFullScores  = cellListDetections{clusterIdx}(dIdx).fullScores;
-%         % configuration
-%         curCombination = cellListDetections{clusterIdx}(dIdx).combination;
-%         scoreIdx = find(0 < curCombination); 
-%         scoreIdx(1 == scoreIdx) = []; % except root
-%         curConfigurationString = repmat('0', 1, numPartTypes);
-%         curConfigurationString(scoreIdx) = '1';        
-%         configurationIdx = bin2dec(curConfigurationString(3:end))+1; % except head and root       
-%         % subtract root filter response
-%         curTotalScore = curTotalScore - curFullScores(1); 
-%         newScore = (curTotalScore - positiveScoreMean(configurationIdx)) ...
-%             / (6*positiveScoreStd(configurationIdx)) + 0.5;        
-%         newScore = newScore + curFullScores(1);
-%         % add root filter response
-%         cellListDetections{clusterIdx}(dIdx).score = newScore;
-%     end    
-%     normScores{clusterIdx} = [cellListDetections{clusterIdx}.score];
-% end
-% % remove detections having negative scores
-% numDeletedDetections = 0;
-% for clusterIdx = 1:numClusters
-%     numCurDetections = length(cellListDetections{clusterIdx});
-%     deathNote = false(1, numCurDetections);
-%     for dIdx = 1:numCurDetections
-%         if 0 > cellListDetections{clusterIdx}(dIdx).score
-%             deathNote(dIdx) = true;
-%             numDeletedDetections = numDeletedDetections + 1;
-%         end
-%     end
-%     aliveIdx = 1:numCurDetections;
-%     aliveIdx(deathNote) = [];
-%     cellListDetections{clusterIdx} = cellListDetections{clusterIdx}(aliveIdx);
-% end
-% fprintf('done!\nthe number of deleted detections: %d\n', numDeletedDetections);
+%==========================================
+% NORMALIZE SCORES
+%==========================================
+% score normalization (mean - 3 std ~ mean + 3 std -> 0 to 1)
+fprintf('score normalization...');
+for clusterIdx = 1:numClusters
+    for dIdx = 1:length(cellListDetections{clusterIdx})        
+        curTotalScore  = cellListDetections{clusterIdx}(dIdx).score;
+        curFullScores  = cellListDetections{clusterIdx}(dIdx).fullScores;
+        % configuration
+        curCombination = cellListDetections{clusterIdx}(dIdx).combination;
+        scoreIdx = find(0 < curCombination); 
+        scoreIdx(1 == scoreIdx) = []; % except root
+        curConfigurationString = repmat('0', 1, numPartTypes);
+        curConfigurationString(scoreIdx) = '1';        
+        configurationIdx = bin2dec(curConfigurationString(3:end))+1; % except head and root       
+        % subtract root filter response
+        curTotalScore = curTotalScore - curFullScores(1); 
+        newScore = (curTotalScore - positiveScoreMean(configurationIdx)) ...
+            / (6*positiveScoreStd(configurationIdx)) + 0.5;        
+        newScore = newScore + curFullScores(1);
+        % add root filter response
+        cellListDetections{clusterIdx}(dIdx).normalizedScore = newScore;
+    end
+end
+fprintf('done!\n');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% OPTIMIZATION
@@ -238,8 +220,8 @@ solutionDeteils.singleHeadCluster = listSingleHeadCluster;
 %==========================================
 % BBOXS and PBOXS
 %==========================================
-bboxs = zeros(sizeSolution, 4);
-pboxs = zeros(sizeSolution, 4, numPartTypes);
+bboxs = zeros(sizeSolution, 6);   % [x,y,w,h,score,normalized score]
+pboxs = zeros(sizeSolution, 5, numPartTypes); % [x,y,w,h,part score]
 boxIdx = 0;
 for clusterIdx = 1:numClusters
     for dIdx = 1:length(cellSolutions{clusterIdx,1})        
@@ -247,12 +229,14 @@ for clusterIdx = 1:numClusters
         curRoot = GetBox(listCParts(curDetection.combination(1)))/partScale;        
         % bbox
         boxIdx = boxIdx + 1;
-        bboxs(boxIdx,:) = curRoot;        
-        % pbox
-        pboxs(boxIdx,:,1) = curRoot;
+        bboxs(boxIdx,1:4) = curRoot;
+        bboxs(boxIdx,5)   = curDetection.score;
+        bboxs(boxIdx,6)   = curDetection.normalizedScore;
+        % pbox        
         curParts = curDetection.combination(0 < curDetection.combination);
-        for pIdx = curParts(2:end)
-            pboxs(boxIdx,:,pIdx) = GetBox(listCParts(pIdx))/partScale;            
+        for pIdx = curParts
+            pboxs(boxIdx,1:4,pIdx) = GetBox(listCParts(pIdx))/partScale;
+            pboxs(boxIdx,5,pIdx)   = listCParts(pIdx).score;
         end
     end
 end

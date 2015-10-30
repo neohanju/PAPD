@@ -14,7 +14,7 @@ text(10, 20, ...
 for bIdx = 1:numBoxes
     curColor = GetColor(CDC, bIdx);
     for pIdx = 1:numParts
-        curPart = partBoxes(bIdx,:,pIdx);
+        curPart = partBoxes(bIdx,1:4,pIdx);
         if 0 == curPart(3), continue; end
         rectangle('Position', curPart, 'EdgeColor', curColor);
     end

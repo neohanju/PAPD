@@ -81,7 +81,7 @@ for frameIdx = START_FRAME : END_FRAME
     falsePositive   = zeros(size(curBBoxs, 1), 1);
     numPositives    = numPositives + size(curGTs, 1);
     for bbIdx = 1 : size(curBBoxs, 1)
-        curDetBB = curBBoxs(bbIdx,:);
+        curDetBB = curBBoxs(bbIdx,1:4);
         ovMax = -inf;
         for gtIdx = 1 : size(curGTs, 1)
             curGTBB = curGTs(gtIdx, :);
@@ -142,10 +142,10 @@ for frameIdx = START_FRAME : END_FRAME
 %     image = imread(imagePath);
 %     imshow(image, 'border', 'tight'); hold on;
 %     for k = 1 : size(curBBoxs, 1)
-%         rectangle('Position', curBBoxs(k,:), 'EdgeColor', 'r');
+%         rectangle('Position', curBBoxs(k,1:4), 'EdgeColor', 'r');
 %     end
 %     for k = 1 : size(curGTs, 1)
-%         rectangle('Position', curGTs(k,:), 'EdgeColor', 'b');
+%         rectangle('Position', curGTs(k,1:4), 'EdgeColor', 'b');
 %     end    
     
 end

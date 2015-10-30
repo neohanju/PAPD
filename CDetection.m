@@ -24,6 +24,7 @@ classdef CDetection
         fullCombination
         fullScores
         score
+        normalizedScore
     end
     methods
         function CD = CDetection(combination, fullCombination, fullScores, score)
@@ -31,6 +32,7 @@ classdef CDetection
             CD.fullCombination = fullCombination;
             CD.fullScores = fullScores;
             CD.score = score;
+            CD.normalizedScore = 0;
         end
         function bCompatible = IsCompatible(CD1, CD2, listCPart, rootMaxOverlap, partMaxOverlap)                
             bCompatible = false;            
