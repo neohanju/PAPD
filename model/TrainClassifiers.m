@@ -19,6 +19,12 @@
 %               (   /        \    /
 %               `--'          /__/
 dbstop if error
+
+% cost design
+missClassificationCostMat = [0, 1; 1, 0]; % [TN, FP; FN, TP]
+maxCostFP = 100;
+minCostFP = 1;
+
 load('ConfigurationScoreStats.mat'); 
 % 'normParam'
 % 'scoreStats': ''posScoreSum', 'negScoreSum', 'posScores', 'negScores'
@@ -34,9 +40,9 @@ positiveScoreStd  = zeros(numConfigurations, 1);
 negativeMaxScores = min(max(scoreStats.negScores), ...
     mean(scoreStats.negScores) + 3*std(scoreStats.negScores));
 
-% normalization
-sampleMean = mean([scoreStats.posScores; scoreStats.negScores], 1);
-sampleStd  = std([scoreStats.posScores; scoreStats.negScores], 1);
+% % normalization
+% sampleMean = mean([scoreStats.posScores; scoreStats.negScores], 1);
+% sampleStd  = std([scoreStats.posScores; scoreStats.negScores], 1);
 % Xp = (scoreStats.posScores - repmat(sampleMean, numPosScores, 1)) ...
 %     ./ repmat(sampleStd, numPosScores, 1);
 % Xn = (scoreStats.negScores - repmat(sampleMean, numNegScores, 1)) ...
@@ -44,7 +50,6 @@ sampleStd  = std([scoreStats.posScores; scoreStats.negScores], 1);
 
 % sample labels
 Y = [ones(1, numPosScores), -1*ones(1, numNegScores)]';
-missClassificationCost = [0, 1.0E+2; 1, 0]; % [TN, FP; FN, TP]
 fprintf('traning SVM for configurations...');
 nchar = fprintf('0/%d', numConfigurations);
 for cIdx = 1:numConfigurations    
@@ -60,14 +65,20 @@ for cIdx = 1:numConfigurations
     end
     idxs = find(1 == curConfiguration);
     numDim = length(idxs);
+    
+    % missclassification cost
+    costFP = 0;
+    if numDim < numPartTypes
+        costFP = (maxCostFP - minCostFP) * (1 - (numDim-1)/numPartTypes) + minCostFP;
+    end
+    missClassificationCostMat(1,2) = costFP;
 
     X = [scoreStats.posScores(:,idxs); scoreStats.negScores(:,idxs)];
-%     X = [Xp(:,idxs); Xn(:,idxs)];
     SVMModels{cIdx} = fitcsvm(...
         X, Y, ...
         'KernelFunction', 'rbf', ...
         'Standardize', true, ...
-        'Cost', missClassificationCost);
+        'Cost', missClassificationCostMat);
     
     bPositive = false(1, numScores);
     for i = 1:numScores
