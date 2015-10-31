@@ -93,8 +93,8 @@ classdef CPart
 %             
 %             if CheckOverlap(root1Coords, root2Coords, overlapRatio), bNeighbor = true; end
 %         end
-        function bCompatible = IsCompatible(CP1, CP2, partOverlapRatio)
-            bCompatible = ~CheckOverlap(CP1.coords, CP2.coords, partOverlapRatio);
-        end
+%         function bCompatible = IsCompatible(CP1, CP2, partOverlapRatio)
+%             bCompatible = ~CheckOverlap(CP1.coords, CP2.coords, partOverlapRatio);
+%         end
     end
 end
