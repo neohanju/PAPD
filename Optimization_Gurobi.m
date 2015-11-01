@@ -171,11 +171,15 @@ numInitialSolution = 0;
 for d1 = fullbodyIdx(pickedIdx);
     bIncompatible = false;
     for d2 = 1:numInitialSolution
-        dPair = sort([d1, initialSolution(d2)], 'ascend');
-        constraintIdx1 = find(constraints(:,1) == dPair(1));
-        constraintIdx2 = find(constraints(:,2) == dPair(2));
-        constraintIdx = intersect(constraintIdx1, constraintIdx2);
-        if isempty(constraintIdx), continue; end
+        if IsCompatible(detections(d1), detections(d2), listCParts, ...
+                rootMaxOverlap, partMaxOverlap)
+            continue;
+        end       
+%         dPair = sort([d1, initialSolution(d2)], 'ascend');
+%         constraintIdx1 = find(constraints(:,1) == dPair(1));
+%         constraintIdx2 = find(constraints(:,2) == dPair(2));
+%         constraintIdx = intersect(constraintIdx1, constraintIdx2);
+%         if isempty(constraintIdx), continue; end
         bIncompatible = true;
         break;
     end
@@ -187,15 +191,17 @@ for d1 = 1:numVariables
     if ~isempty(find(d1 == initialSolution, 1)), continue; end
     bIncompatible = false;
     for d2 = 1:numInitialSolution
-        dPair = sort([d1, initialSolution(d2)], 'ascend');
-        constraintIdx1 = find(constraints(:,1) == dPair(1));
-        constraintIdx2 = find(constraints(:,2) == dPair(2));
-        constraintIdx = intersect(constraintIdx1, constraintIdx2);
-        if isempty(constraintIdx), continue; end
-        
+        if IsCompatible(detections(d1), detections(d2), listCParts, ...
+                rootMaxOverlap, partMaxOverlap)
+            continue;
+        end  
+%         dPair = sort([d1, initialSolution(d2)], 'ascend');
+%         constraintIdx1 = find(constraints(:,1) == dPair(1));
+%         constraintIdx2 = find(constraints(:,2) == dPair(2));
+%         constraintIdx = intersect(constraintIdx1, constraintIdx2);
+%         if isempty(constraintIdx), continue; end        
         totalNumParts = grb_model.obj(d1) + grb_model.obj(d2) + grb_model.Q(d1,d2) * 2.0;
-        if 0 <= totalNumParts, continue; end
-        
+        if 0 <= totalNumParts, continue; end        
         bIncompatible = true;
         break;
     end
