@@ -202,7 +202,7 @@ for t=0:0.1:1
     AP=AP+p/11;
 end
 
-figure(2001); clf;
+figure(2000); clf;
 plot(rec,prec,'-');
 grid;
 axis([0 1 0 1]);
@@ -223,11 +223,11 @@ for i=1:length(ref);
     j=find(xs1<=ref(i));
     ref(i)=ys1(j(end));
 end
-figure(3001); clf;
-% plot(xs, 1-ys);
-lims = [0 10 0 1];
-plotRoc([FPPI, MISSRATE],'logx',1,'logy',0,'xLbl','fppi',...
-  'lims',lims,'color','g','smooth',1,'fpTarget',ref);
+figure(2001); clf;
+plot(FPPI, 1-MISSRATE);
+% lims = [0 10 0 1];
+% plotRoc([FPPI, MISSRATE],'logx',1,'logy',0,'xLbl','fppi',...
+%   'lims',lims,'color','g','smooth',1,'fpTarget',ref);
 miss=exp(mean(log(max(1e-10,1-ref))));
 title(sprintf('log-average miss rate = %.2f%%',miss*100));
 

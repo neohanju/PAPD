@@ -1,4 +1,4 @@
-function stDPMEvaluationResult = EvaluateDPM (datasetpath, cellGroundTruths, evalMinOverlap)
+function stDPMEvaluationResult = EvaluateDPM (stInputSetting, cellGroundTruths, evalMinOverlap)
 %==========================================================================
 % This code evaluates DPM detection results on PETS 2009 datset,
 % and automatically saves the evaluation results.
@@ -21,8 +21,13 @@ function stDPMEvaluationResult = EvaluateDPM (datasetpath, cellGroundTruths, eva
 % ___________/__][__\___________________________________/____|[_]_\__
 %
 
-global START_FRAME_IDX END_FRAME_IDX
-global PARTCANDIDATE_DIR PARTCANDIDATE_FORM PARTCANDIDATE_SCALE
+% input
+datasetpath         = stInputSetting.datasetpath;
+START_FRAME_IDX     = stInputSetting.startFrameIdx;
+END_FRAME_IDX       = stInputSetting.endFrameIdx;
+PARTCANDIDATE_DIR   = stInputSetting.partCandidateDir;
+PARTCANDIDATE_FORM  = stInputSetting.partCandidateForm;
+PARTCANDIDATE_SCALE = stInputSetting.partCandidateScale;
 
 % Output argument: structure for evaluation (example)
 stDPMEvaluationResult = struct(...
@@ -165,7 +170,8 @@ for t=0:0.1:1
     AP=AP+p/11;
 end
 
-figure(2001); clf;
+figure(3000); clf;
+hold on;
 plot(rec,prec,'-');
 grid;
 xlabel 'recall'
@@ -186,10 +192,10 @@ for i=1:length(ref);
     ref(i)=ys1(j(end));
 end
 figure(3001); clf;
-% plot(xs, 1-ys);
-lims = [0 10 0 1];
-plotRoc([FPPI, MISSRATE],'logx',1,'logy',0,'xLbl','fppi',...
-  'lims',lims,'color','g','smooth',1,'fpTarget',ref);
+plot(FPPI, 1-MISSRATE);
+% lims = [0 10 0 1];
+% plotRoc([FPPI, MISSRATE],'logx',1,'logy',0,'xLbl','fppi',...
+%   'lims',lims,'color','g','smooth',1,'fpTarget',ref);
 miss=exp(mean(log(max(1e-10,1-ref))));
 title(sprintf('log-average miss rate = %.2f%%',miss*100));
 

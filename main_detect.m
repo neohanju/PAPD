@@ -144,6 +144,15 @@ for hnrIdx = 1:numHNR
     end
 end
 
+% for comparison with DPM
+stInputSetting.datasetpath        = DATASET_PATH;
+stInputSetting.startFrameIdx      = START_FRAME_IDX;
+stInputSetting.endFrameIdx        = END_FRAME_IDX;
+stInputSetting.partCandidateDir   = PARTCANDIDATE_DIR;
+stInputSetting.partCandidateForm  = PARTCANDIDATE_FORM;
+stInputSetting.partCandidateScale = PARTCANDIDATE_SCALE;
+EvaluateDPM(stInputSetting, cellGroundTruths, EVAL_MIN_OVERLAP);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% RESULT VISUALIZATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
