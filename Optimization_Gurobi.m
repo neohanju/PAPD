@@ -132,13 +132,13 @@ if 0 < numConstraints
     end
     grb_model.A = sparse(rowIndices', colIndices, constOnes);
     grb_model.rhs = ones(1, numConstraints);
-    grb_model.sense = '<';  % single value -> same all(< means <=, becuase gorubi does not support strict inequailities)
+    
 else
     % when numConstraints == 0
-    grb_model.A = sparse(ones(numVariables, 1), [1:numVariables]', zeros(numVariables, 1));
-    grb_model.rhs = ones(1, 1);
-    grb_model.sense = '<';
+    grb_model.A = sparse(1, numVariables, 0);
+    grb_model.rhs = ones(1, 1);    
 end
+grb_model.sense = '<';  % single value -> same all(< means <=, becuase gorubi does not support strict inequailities)
 grb_model.vtype = 'B';
 
 %==========================================
@@ -169,43 +169,33 @@ pickedIdx = pickedIdx(sortingOrder);
 initialSolution = zeros(1, numVariables);
 numInitialSolution = 0;
 for d1 = fullbodyIdx(pickedIdx);
-    bIncompatible = false;
+    bCompatible = true;
     for d2 = 1:numInitialSolution
-        if IsCompatible(detections(d1), detections(d2), listCParts, ...
+        if IsCompatible(detections(d1), detections(initialSolution(d2)), listCParts, ...
                 rootMaxOverlap, partMaxOverlap)
             continue;
         end       
-%         dPair = sort([d1, initialSolution(d2)], 'ascend');
-%         constraintIdx1 = find(constraints(:,1) == dPair(1));
-%         constraintIdx2 = find(constraints(:,2) == dPair(2));
-%         constraintIdx = intersect(constraintIdx1, constraintIdx2);
-%         if isempty(constraintIdx), continue; end
-        bIncompatible = true;
+        bCompatible = false;
         break;
     end
-    if bIncompatible, continue; end
+    if ~bCompatible, continue; end
     numInitialSolution = numInitialSolution + 1;
     initialSolution(numInitialSolution) = d1;
 end
 for d1 = 1:numVariables
     if ~isempty(find(d1 == initialSolution, 1)), continue; end
-    bIncompatible = false;
+    bCompatible = true;
     for d2 = 1:numInitialSolution
-        if IsCompatible(detections(d1), detections(d2), listCParts, ...
+        if IsCompatible(detections(d1), detections(initialSolution(d2)), listCParts, ...
                 rootMaxOverlap, partMaxOverlap)
-            continue;
-        end  
-%         dPair = sort([d1, initialSolution(d2)], 'ascend');
-%         constraintIdx1 = find(constraints(:,1) == dPair(1));
-%         constraintIdx2 = find(constraints(:,2) == dPair(2));
-%         constraintIdx = intersect(constraintIdx1, constraintIdx2);
-%         if isempty(constraintIdx), continue; end        
-        totalNumParts = grb_model.obj(d1) + grb_model.obj(d2) + grb_model.Q(d1,d2) * 2.0;
-        if 0 <= totalNumParts, continue; end        
-        bIncompatible = true;
+            totalNumParts = grb_model.obj(d1) + grb_model.obj(initialSolution(d2)) + ...
+            grb_model.Q(d1,initialSolution(d2)) + grb_model.Q(initialSolution(d2),d1);
+            if 0 <= totalNumParts, continue; end
+        end
+        bCompatible = false;
         break;
     end
-    if bIncompatible, continue; end
+    if ~bCompatible, continue; end
     numInitialSolution = numInitialSolution + 1;
     initialSolution(numInitialSolution) = d1;
 end
@@ -243,7 +233,7 @@ solution{2} = zeros(1, numVariables); % index of solution variables
 solution{3} = grb_result.objval;      % objective value
 numDetectionInSolution = 0;
 for v = 1:numVariables
-    if 0 == grb_result.x(v), continue; end
+    if 0.5 >  grb_result.x(v), continue; end
     numDetectionInSolution = numDetectionInSolution + 1;
     solution{1}(numDetectionInSolution) = detections(v);    
     solution{2}(numDetectionInSolution) = v;

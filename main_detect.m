@@ -2,7 +2,7 @@
 % Name : MAIN_DETECT                                                         
 % Date : 2015.10.29
 % Author : Yoo & Yun
-% Version : 0.9
+% Version : 0.97
 %==========================================================================
 %     .__                           __.
 %       \ `\~~---..---~~~~~~--.---~~| /   
@@ -84,6 +84,7 @@ for hnrIdx = 1:numHNR
         
         cellIdx = 0;
         for frameIdx = START_FRAME_IDX:END_FRAME_IDX
+            tic_frameStart = tic;
             fprintf('===================================================\n');
             fprintf(' FRAME: %04d\n', frameIdx);
             fprintf('===================================================\n');
@@ -100,7 +101,7 @@ for hnrIdx = 1:numHNR
             partDetections.scale      = PARTCANDIDATE_SCALE;
             
             %==========================================
-            % PART DETECTION
+            % PART ASSOCIATION
             %==========================================
             [bboxs, pboxs, solutionDetails, listCParts] = PAPD(...
                 image, partDetections, model, ...
@@ -120,7 +121,22 @@ for hnrIdx = 1:numHNR
             % FRAME RESULT VISUALIZATION
             %==========================================
             ShowFrameResult(image, frameIdx, stDetectionResult(numExp).cellPBoxs{cellIdx}, ...
-                figFrameResult, CDC);
+                figFrameResult, CDC);           
+            
+            %==========================================
+            % SAVE INTERMIDIATE RESULTS
+            %==========================================
+            interDetectionResult = stDetectionResult(numExp);
+            save(fullfile(RESULT_DIR, sprintf(['_inter_' RESULT_NAMEFORM], ...
+                stDetectionResult(numExp).headNMSRatio, ...
+                stDetectionResult(numExp).partNMSRatio)), ...
+                '-v6', ...
+                'interDetectionResult');
+
+            toc_frameEnd = toc(tic_frameStart);
+            fprintf('---------------------------------------------------\n');
+            fprintf(' TAKES %0.2f MINUTES.\n', toc_frameEnd/60);           
+
         end
         stDetectionResult(numExp).solvingTime = ...
             clock - stDetectionResult(numExp).startingTime;
