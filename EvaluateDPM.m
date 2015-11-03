@@ -170,9 +170,9 @@ for t=0:0.1:1
     AP=AP+p/11;
 end
 
-figure(3000); clf;
+figure(2000); hold on;
 hold on;
-plot(rec,prec,'-');
+plot(rec,prec,'r-');
 grid;
 xlabel 'recall'
 ylabel 'precision'
@@ -191,8 +191,8 @@ for i=1:length(ref);
     j=find(xs1<=ref(i));
     ref(i)=ys1(j(end));
 end
-figure(3001); clf;
-plot(FPPI, 1-MISSRATE);
+figure(2001); hold on;
+plot(FPPI, 1-MISSRATE, 'r-');
 % lims = [0 10 0 1];
 % plotRoc([FPPI, MISSRATE],'logx',1,'logy',0,'xLbl','fppi',...
 %   'lims',lims,'color','g','smooth',1,'fpTarget',ref);

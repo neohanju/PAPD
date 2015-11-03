@@ -208,7 +208,7 @@ grb_model.start = initialVector';
 % SYSTEM PARAMETERS
 %==========================================
 grb_params.outputflag = 0;
-grb_params.timelimit = timelimit;
+grb_params.timelimit = min(timelimit, max(120, numConstraints * 60/100000));
 toc_const = toc(t_const);
 fprintf(['construction time: ' datestr(datenum(0,0,0,0,0,toc_const),'HH:MM:SS') '\n']);
 

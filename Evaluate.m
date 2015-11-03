@@ -90,7 +90,7 @@ for frameIdx = START_FRAME_IDX : END_FRAME_IDX
     % concatenate annotations
     detBBoxs    = [detBBoxs; curBBoxs(:,1:4)];        % [x1, y1, x2, y2]
     gtBBoxs     = [gtBBoxs; curGTs];
-    detConfs    = [detConfs; curBBoxs(:, end)];       % normalized score (end-1: score)
+    detConfs    = [detConfs; curBBoxs(:, end-1)];       % normalized score (end-1: score)
     % attach frame indices
     detBBoxIds  = [detBBoxIds; frameIdx * ones(size(curBBoxs,1),1)];
     gtIds       = [gtIds; frameIdx * ones(size(curGTs,1),1)];
