@@ -218,7 +218,7 @@ fprintf(['construction time: ' datestr(datenum(0,0,0,0,0,toc_const),'HH:MM:SS') 
 curTime = clock;
 fprintf(['solve (start at ' ...
     datestr(datenum(0,0,0,curTime(4),curTime(5),curTime(6)),'HH:MM:SS') ...
-    ' / time limit: %dsec)...'], grb_params.timelimit);
+    ' / time limit: %dsec)...'], round(grb_params.timelimit));
 tic;
 grb_result = gurobi(grb_model, grb_params);
 t_solve = toc;
