@@ -234,3 +234,4 @@ data/*result*.mat
 #('')HAANJU.YOO
 *.fig
 *.mexw64
+model/ConfigurationClassifiers.mat
