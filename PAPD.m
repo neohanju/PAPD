@@ -229,10 +229,11 @@ for clusterIdx = 1:numClusters
         bboxs(boxIdx,5)   = curDetection.score;
         bboxs(boxIdx,6)   = curDetection.normalizedScore;
         % pbox        
-        curParts = find(0 < curDetection.combination);
+        curParts = curDetection.combination(0 < curDetection.combination);
         for pIdx = curParts
-            pboxs(boxIdx,1:4,pIdx) = GetBox(listCParts(pIdx))/partScale;
-            pboxs(boxIdx,5,pIdx)   = listCParts(pIdx).score;
+            curType = listCParts(pIdx).type;
+            pboxs(boxIdx,1:4,curType) = GetBox(listCParts(pIdx))/partScale;
+            pboxs(boxIdx,5,curType)   = listCParts(pIdx).score;
         end
     end
 end
