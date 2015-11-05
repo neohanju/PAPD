@@ -220,18 +220,25 @@ pip-log.txt
 # Common
 *.asv
 
+
+#############
+## PAPD
+#############
 # init file
 papd_init.m
 
-#############
-## GUROBI
-#############
-*.lp
+# solver related
 data/*grb_model*.mat
 data/*result*.mat
 
-#()()
-#('')HAANJU.YOO
+# model related
+model/ConfigurationClassifiers.mat
+
+# others
+*.lp
 *.fig
 *.mexw64
-model/ConfigurationClassifiers.mat
+
+
+#()()
+#('')HAANJU.YOO
