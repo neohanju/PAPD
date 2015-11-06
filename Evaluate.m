@@ -225,6 +225,8 @@ for i=1:length(ref);
 end
 figure(2001); clf;
 plot(FPPI, 1-MISSRATE);
+xlabel 'FPPI'
+ylabel 'MISSRATE'
 % lims = [0 10 0 1];
 % plotRoc([FPPI, MISSRATE],'logx',1,'logy',0,'xLbl','fppi',...
 %   'lims',lims,'color','g','smooth',1,'fpTarget',ref);
