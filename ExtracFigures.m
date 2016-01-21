@@ -1,4 +1,4 @@
-%     .__                           __.
+%      .__                           __.
 %       \ `\~~---..---~~~~~~--.---~~| /   
 %        `~-.   `                   .~         _____ 
 %            ~.                .--~~    .---~~~    /
@@ -242,62 +242,62 @@ main_init;
 % drawnow;
 
 
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% %% RESULT VIDEO RECORDING
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 
-% 
-% % load(fullfile(RESULT_DIR, 'result_hnr0.80_pnr0.50_SVM2GN.mat'));
-% writerObj = VideoWriter('result_video_S2L3.avi');
-% writerObj.FrameRate = 7;
-% open(writerObj);
-% 
-% % stDetectionResult = curDetectionResult(1);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% RESULT VIDEO RECORDING
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% load(fullfile(RESULT_DIR, 'result_hnr0.80_pnr0.50_SVM2GN.mat'));
+writerObj = VideoWriter('result_video_S2L3.avi');
+writerObj.FrameRate = 7;
+open(writerObj);
+
+stDetectionResult = curDetectionResult(1);
 % stDetectionResult = interDetectionResult;
-% 
-% figFrameResult = figure;
-% for frameIdx = 0:181
-%     image = imread(fullfile('D:\Workspace\Dataset\PETS2009\S2\L3\Time_14-41\View_001'...
-%         , sprintf([IMAGE_NAMEFORM, '.', IMAGE_FORMATE], frameIdx)));
-% 
-%     partBoxes = stDetectionResult.cellPBoxs{frameIdx+1};
-% 
-% 
-%     [numBoxes,~,numParts] = size(partBoxes);
-%     figure(figFrameResult);
-%     imshow(image, 'border', 'tight'); hold on;
-% 
-%     % frame information
-%     text(10, 20, ...
-%         ['\fontsize{10}\color{white}' ...
-%             sprintf('frame: %03d / detected boxes: %03d', frameIdx, numBoxes)], ...
-%         'BackgroundColor', 'k');
-% 
-%     % draw part boxes
-%     for bIdx = 1:numBoxes
-%         curColor = GetColor(CDC, bIdx);
-%         bRoot = true;
-%         for pIdx = 1:numParts
-%             curPart = partBoxes(bIdx,1:4,pIdx);
-%             if 0 == curPart(3), continue; end
-%             if bRoot
-%                 bRoot = false;
-%                 continue;
-%             end
-%             xs = [curPart(1), curPart(1)+curPart(3), curPart(1)+curPart(3), curPart(1)];
-%             ys = [curPart(2), curPart(2), curPart(2)+curPart(4), curPart(2)+curPart(4)];
-%             p  = patch(xs, ys, curColor);
-%             set(p, 'FaceAlpha', 0.3);
-%             rectangle('Position', curPart, 'EdgeColor', curColor);
-%         end
-%     end
-%     hold off;
-%     drawnow;
-%     
-%     writeVideo(writerObj, im2frame(zbuffer_cdata(figFrameResult)));
-% end
-% 
-% close(writerObj);
+
+figFrameResult = figure;
+for frameIdx = 0:239
+    image = imread(fullfile('D:\Workspace\Dataset\PETS2009\S2\L3\Time_14-41\View_001'...
+        , sprintf([IMAGE_NAMEFORM, '.', IMAGE_FORMATE], frameIdx)));
+
+    partBoxes = stDetectionResult.cellPBoxs{frameIdx+1};
+
+
+    [numBoxes,~,numParts] = size(partBoxes);
+    figure(figFrameResult);
+    imshow(image, 'border', 'tight'); hold on;
+
+    % frame information
+    text(10, 20, ...
+        ['\fontsize{10}\color{white}' ...
+            sprintf('frame: %03d / detected boxes: %03d', frameIdx, numBoxes)], ...
+        'BackgroundColor', 'k');
+
+    % draw part boxes
+    for bIdx = 1:numBoxes
+        curColor = GetColor(CDC, bIdx);
+        bRoot = true;
+        for pIdx = 1:numParts
+            curPart = partBoxes(bIdx,1:4,pIdx);
+            if 0 == curPart(3), continue; end
+            if bRoot
+                bRoot = false;
+                continue;
+            end
+            xs = [curPart(1), curPart(1)+curPart(3), curPart(1)+curPart(3), curPart(1)];
+            ys = [curPart(2), curPart(2), curPart(2)+curPart(4), curPart(2)+curPart(4)];
+            p  = patch(xs, ys, curColor);
+            set(p, 'FaceAlpha', 0.3);
+            rectangle('Position', curPart, 'EdgeColor', curColor);
+        end
+    end
+    hold off;
+    drawnow;
+    
+    writeVideo(writerObj, im2frame(zbuffer_cdata(figFrameResult)));
+end
+
+close(writerObj);
 
 %()()
 %('') HAANJU.YOO
