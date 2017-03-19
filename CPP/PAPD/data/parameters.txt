@@ -1,0 +1,33 @@
+%==========================================
+% INPUT
+%==========================================
+DATASET_PATH=D:/Workspace/Dataset/PETS2009/S2/L2/Time_14-55/View_001
+PART_DETECTION_DIR=partDetections
+PART_MODEL_FILE=data/dpm_inria.txt
+GROUNDTRUTH_DIR=data/groundTruth
+GROUNDTRUTH_NAME=PETS2009-S2L2.mat
+START_FRAME_IDX=0
+END_FRAME_IDX=435
+%END_FRAME_IDX=435
+
+%==========================================
+% PARAMETERS
+%==========================================
+ROOT_MAX_OVERLAP=0.9
+HEAD_NMS_RATIO=0.5
+PART_NMS_RATIO=0.8
+PART_COVER_RATIO=0.3
+EVAL_MIN_OVERLAP=0.5
+SOVLER_TIMELIMIT=60
+
+%==========================================
+% OUTPUT
+%==========================================
+RESULT_DIR=D:/Workspace/ExperimentalResult/PAPD/PETS2009-S2L2/CPP
+DO_RECORD=1
+
+%()()
+%('')HAANJU.YOO
+
+
+

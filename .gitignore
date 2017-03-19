@@ -41,6 +41,11 @@ local.properties
 *.sln.docstates
 
 # Build results
+/output
+/Debug
+/PAPD/Debug
+*.sdf
+
 
 [Dd]ebug/
 [Rr]elease/
@@ -238,6 +243,16 @@ model/ConfigurationClassifiers.mat
 *.lp
 *.fig
 *.mexw64
+
+
+# LATEX
+*.aux
+*.bbl
+*.blg
+*.brf
+*.log
+PAPD_CVPR_2016_review.pdf
+*.synctex.gz
 
 
 #()()

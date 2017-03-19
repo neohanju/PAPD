@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Solver">
+      <UniqueIdentifier>{a23b5592-aeb1-4d3d-9789-d94b78b4d1d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Data">
+      <UniqueIdentifier>{0379d098-2c29-4805-834d-2f3594c364ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Helpers">
+      <UniqueIdentifier>{cb6ad1cf-968b-4e61-bfd8-0acc7ac68ab5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Windows fundamentals">
+      <UniqueIdentifier>{8ab81abd-2fbd-4d8a-8d51-aa13793db049}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="PAPD_defines.h" />
+    <ClInclude Include="ParameterParser.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphSolver.h">
+      <Filter>Solver</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Windows fundamentals</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Windows fundamentals</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameGrabber.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="PAPD.h" />
+    <ClInclude Include="Part.h" />
+    <ClInclude Include="PartModel.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="Detection.h" />
+    <ClInclude Include="hjlib.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ParameterParser.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphSolver.cpp">
+      <Filter>Solver</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Windows fundamentals</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameGrabber.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="PAPD.cpp" />
+    <ClCompile Include="Part.cpp" />
+    <ClCompile Include="PartModel.cpp" />
+    <ClCompile Include="Detection.cpp" />
+    <ClCompile Include="hjlib.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="main_solverTest.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="data\parameters.txt">
+      <Filter>Data</Filter>
+    </Text>
+  </ItemGroup>
+</Project>
